@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Status {
+  id          Int        @id @default(autoincrement())
+  uuid        String     @unique
+  designation String
+  code        String     @unique
+  Category    Category[]
+  Product     Product[]
+  User        User[]
+  Mouvement   Movement[]
+}
+
+model User {
+  id                  Int        @id @default(autoincrement())
+  uuid                String     @unique
+  firstName           String
+  lastName            String
+  isAdmin             Boolean
+  email               String     @unique
+  phone               String?
+  password            String
+  statusId            Int
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  editedMouvements    Movement[] @relation("Editor")
+  validatedMouvements Movement[] @relation("Validator")
+  status              Status     @relation(fields: [statusId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique
+  designation String
+  statusId    Int
+  categoryId  Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  description String?   @db.Text
+  price       Float
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  status      Status    @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  Details     Details[]
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique
+  designation String
+  statusId    Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  status      Status    @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  Product     Product[]
+}
+
+model Movement {
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique
+  isEnter     Boolean
+  editorId    Int
+  validatorId Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  statusId    Int
+  editor      User      @relation("Editor", fields: [editorId], references: [id], onDelete: Cascade)
+  validator   User      @relation("Validator", fields: [validatorId], references: [id], onDelete: Cascade)
+  status      Status    @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  Details     Details[]
+}
+
+model Details {
+  id         Int      @id @default(autoincrement())
+  uuid       String   @unique
+  movementId Int
+  productId  Int
+  quantity   Int
+  Mouvement  Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
