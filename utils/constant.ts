@@ -10,4 +10,5 @@ export const STATUS = {
   DELETED: 'DLT',
   OUTSTANDING: 'OSD',
   COMPLETED: 'CMP',
+  OLD: 'OLD',
 };

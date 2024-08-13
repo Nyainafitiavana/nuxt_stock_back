@@ -23,6 +23,10 @@ export class ProductService {
       where: { uuid: createProductDto.idCategory },
     });
 
+    if (!findCategory) {
+      throw new CustomException(MESSAGE.ID_NOT_FOUND, HttpStatus.CONFLICT);
+    }
+
     delete createProductDto.idCategory;
 
     const createProduct: Product = await this.prisma.product.create({
@@ -69,7 +73,6 @@ export class ProductService {
       select: {
         designation: true,
         uuid: true,
-        price: true,
         description: true,
         status: {
           select: {
@@ -82,6 +85,26 @@ export class ProductService {
           select: {
             designation: true,
             uuid: true,
+          },
+        },
+        productSalesPrice: {
+          select: {
+            unitPrice: true,
+            wholesale: true,
+            createdAt: true,
+            uuid: true,
+            status: {
+              select: {
+                designation: true,
+                code: true,
+                uuid: true,
+              },
+            },
+          },
+          orderBy: {
+            status: {
+              id: 'asc',
+            },
           },
         },
       },
@@ -121,7 +144,6 @@ export class ProductService {
       throw new CustomException(MESSAGE.ID_NOT_FOUND, HttpStatus.CONFLICT);
     }
 
-    delete product.id;
     delete product.statusId;
     delete product.categoryId;
     return product;

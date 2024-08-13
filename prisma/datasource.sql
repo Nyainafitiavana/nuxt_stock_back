@@ -9,7 +9,9 @@ INSERT INTO public."Status"
 (id, "uuid", designation, code)
 VALUES(3, 'e0e78201-da43-40e1-960d-7aea421bd473', 'Completed', 'CMP')
 (id, "uuid", designation, code)
-VALUES(4, '1c2c0990-1652-413a-a574-b0c0df184bac', 'Completed', 'OSD');
+VALUES(4, '1c2c0990-1652-413a-a574-b0c0df184bac', 'Completed', 'OSD')
+(id, "uuid", designation, code)
+VALUES(5, '75a2e68c-d3d1-4d0f-90ab-222a5042c0d1', 'Old', 'OLD');
 
 ---insert default user----
 INSERT INTO public."User"
