@@ -51,7 +51,6 @@ export class ProductService {
     status: string,
     categoryId: string,
   ): Promise<Paginate<Product[]>> {
-    const offset: number = await this.helper.calculOffset(limit, page);
 
     // Initialize the where clause
     const whereClause: Prisma.ProductWhereInput = {
@@ -67,8 +66,6 @@ export class ProductService {
     }
 
     const query: Prisma.ProductFindManyArgs = {
-      take: limit,
-      skip: offset,
       where: whereClause,
       select: {
         designation: true,
@@ -109,6 +106,12 @@ export class ProductService {
         },
       },
     };
+
+    if (limit && page) {
+      const offset: number = await this.helper.calculOffset(limit, page);
+      query.take = limit;
+      query.skip = offset;
+    }
 
     const [data, count] = await this.prisma.$transaction([
       this.prisma.product.findMany(query),

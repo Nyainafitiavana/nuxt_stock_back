@@ -49,8 +49,8 @@ export class CategoryController {
     @Req() req: Request,
   ): Promise<void> {
     try {
-      const limit: number = Number(req.query.limit);
-      const page: number = Number(req.query.page);
+      const limit: number = req.query.limit ? Number(req.query.limit) : null;
+      const page: number = req.query.page ? Number(req.query.page) : null;
       const keyword: string = req.query.value
         ? (req.query.value as string)
         : '';

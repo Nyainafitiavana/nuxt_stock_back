@@ -37,11 +37,8 @@ export class CategoryService {
     keyword: string,
     status: string,
   ): Promise<Paginate<Category[]>> {
-    const offset: number = await this.helper.calculOffset(limit, page);
 
     const query: Prisma.CategoryFindManyArgs = {
-      take: limit,
-      skip: offset,
       where: {
         designation: {
           contains: keyword,
@@ -64,6 +61,12 @@ export class CategoryService {
       },
       orderBy: [{ designation: 'asc' }],
     };
+
+    if (limit && page) {
+      const offset: number = await this.helper.calculOffset(limit, page);
+      query.take = limit;
+      query.skip = offset;
+    }
 
     const [data, count] = await this.prisma.$transaction([
       this.prisma.category.findMany(query),
