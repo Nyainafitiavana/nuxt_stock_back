@@ -1,34 +1,34 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
-import { Category, Prisma, Status } from '@prisma/client';
-import { MESSAGE, STATUS } from '../../utils/constant';
+import { CreateUnitDto } from './dto/create-unit.dto';
+import { UpdateUnitDto } from './dto/update-unit.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import Helper from '../../utils/helper';
+import { Prisma, Status, Unit } from '@prisma/client';
+import { MESSAGE, STATUS } from '../../utils/constant';
 import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { CustomException } from '../../utils/ExeptionCustom';
 
 @Injectable()
-export class CategoryService {
+export class UnitService {
   constructor(
     private prisma: PrismaService,
     private helper: Helper,
   ) {}
-  async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
+  async create(createUnitDto: CreateUnitDto): Promise<Unit> {
     const findStatusByCode: Status = await this.prisma.status.findUnique({
       where: { code: STATUS.ACTIVE },
     });
 
-    const createCategory: Category = await this.prisma.category.create({
+    const createUnit: Unit = await this.prisma.unit.create({
       data: {
-        ...createCategoryDto,
+        ...createUnitDto,
         statusId: findStatusByCode.id,
         uuid: await this.helper.generateUuid(),
       },
     });
 
-    delete createCategory.id;
-    return createCategory;
+    delete createUnit.id;
+    return createUnit;
   }
 
   async findAll(
@@ -36,8 +36,8 @@ export class CategoryService {
     page: number = null,
     keyword: string,
     status: string,
-  ): Promise<Paginate<Category[]>> {
-    const query: Prisma.CategoryFindManyArgs = {
+  ): Promise<Paginate<Unit[]>> {
+    const query: Prisma.UnitFindManyArgs = {
       where: {
         designation: {
           contains: keyword,
@@ -68,15 +68,15 @@ export class CategoryService {
     }
 
     const [data, count] = await this.prisma.$transaction([
-      this.prisma.category.findMany(query),
-      this.prisma.category.count({ where: query.where }),
+      this.prisma.unit.findMany(query),
+      this.prisma.unit.count({ where: query.where }),
     ]);
 
     return { data: data, totalRows: count, page: page };
   }
 
-  async findOne(uuid: string): Promise<Category> {
-    const category: Category = await this.prisma.category.findUnique({
+  async findOne(uuid: string): Promise<Unit> {
+    const unit: Unit = await this.prisma.unit.findUnique({
       where: {
         uuid: uuid,
       },
@@ -91,25 +91,25 @@ export class CategoryService {
       },
     });
 
-    if (!category) {
+    if (!unit) {
       throw new CustomException(MESSAGE.ID_NOT_FOUND, HttpStatus.CONFLICT);
     }
 
-    return category;
+    return unit;
   }
 
   async update(
     uuid: string,
-    updateCategoryDto: UpdateCategoryDto,
+    updateUnitDto: UpdateUnitDto,
   ): Promise<ExecuteResponse> {
-    const findCategory: Category = await this.findOne(uuid);
+    const findUnit: Unit = await this.findOne(uuid);
 
-    await this.prisma.category.update({
+    await this.prisma.unit.update({
       where: {
-        uuid: findCategory.uuid,
+        uuid: findUnit.uuid,
       },
       data: {
-        ...updateCategoryDto,
+        ...updateUnitDto,
       },
     });
 
@@ -117,14 +117,14 @@ export class CategoryService {
   }
 
   async remove(uuid: string): Promise<ExecuteResponse> {
-    const findCategory: Category = await this.findOne(uuid);
+    const findUnit: Unit = await this.findOne(uuid);
     const findStatusByCode: Status = await this.prisma.status.findUnique({
       where: { code: STATUS.DELETED },
     });
 
-    await this.prisma.category.update({
+    await this.prisma.unit.update({
       where: {
-        uuid: findCategory.uuid,
+        uuid: findUnit.uuid,
       },
       data: {
         statusId: findStatusByCode.id,

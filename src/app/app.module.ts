@@ -7,6 +7,7 @@ import { AuthModule } from '../auth/auth.module';
 import { CategoryModule } from '../category/category.module';
 import { ProductModule } from '../product/product.module';
 import { ProductSalesPriceModule } from '../product-sales-price/product-sales-price.module';
+import { UnitModule } from '../unit/unit.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ProductSalesPriceModule } from '../product-sales-price/product-sales-pr
     PrismaModule,
     CategoryModule,
     ProductModule,
+    UnitModule,
     ProductSalesPriceModule,
   ],
   controllers: [AppController],

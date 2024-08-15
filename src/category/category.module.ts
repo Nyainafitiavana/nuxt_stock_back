@@ -8,5 +8,6 @@ import Helper from '../../utils/helper';
   imports: [PrismaModule],
   controllers: [CategoryController],
   providers: [CategoryService, Helper],
+  exports: [CategoryService],
 })
 export class CategoryModule {}

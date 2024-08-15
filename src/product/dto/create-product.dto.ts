@@ -9,4 +9,7 @@ export class CreateProductDto {
 
   @IsString()
   public idCategory: string;
+
+  @IsString()
+  public idUnit: string;
 }

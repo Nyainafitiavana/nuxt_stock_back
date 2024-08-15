@@ -16,6 +16,7 @@ model Status {
   mouvement         Movement[]
   product           Product[]
   productSalesPrice ProductSalesPrice[]
+  unit              Unit[]
   user              User[]
 }
 
@@ -40,15 +41,28 @@ model Product {
   id                Int                 @id @default(autoincrement())
   uuid              String              @unique
   designation       String
+  unitId           Int?
   statusId          Int
-  categoryId        Int
+  categoryId        Int?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   description       String?
   details           Details[]
-  category          Category            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category          Category?            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  unit             Unit?            @relation(fields: [unitId], references: [id], onDelete: Cascade)
   status            Status              @relation(fields: [statusId], references: [id], onDelete: Cascade)
   productSalesPrice ProductSalesPrice[]
+}
+
+model Unit {
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique
+  designation String
+  statusId    Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  status      Status    @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  Product     Product[]
 }
 
 model ProductSalesPrice {
@@ -90,12 +104,13 @@ model Movement {
 }
 
 model Details {
-  id           Int      @id @default(autoincrement())
-  uuid         String   @unique
-  movementId   Int
-  productId    Int
-  quantity     Int
-  pricePerUnit Float?
-  mouvement    Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id                      Int      @id @default(autoincrement())
+  uuid                    String   @unique
+  movementId              Int
+  productId               Int
+  isStandardUnitPrice     Boolean
+  quantity                Int
+  pricePerUnit            Float?
+  mouvement               Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  product                 Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
