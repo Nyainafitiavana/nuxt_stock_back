@@ -57,6 +57,7 @@ export class ProductService {
     keyword: string,
     status: string,
     categoryId: string,
+    unitId: string,
   ): Promise<Paginate<Product[]>> {
     // Initialize the where clause
     const whereClause: Prisma.ProductWhereInput = {
@@ -69,6 +70,11 @@ export class ProductService {
     // Add category filter if categoryId is not empty
     if (categoryId !== '') {
       whereClause.category = { uuid: categoryId };
+    }
+
+    // Add unit filter if unitId is not empty
+    if (unitId !== '') {
+      whereClause.unit = { uuid: unitId };
     }
 
     const query: Prisma.ProductFindManyArgs = {

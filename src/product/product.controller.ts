@@ -13,7 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
-import { Category, Product } from '@prisma/client';
+import { Product } from '@prisma/client';
 import { AdminGuard } from '../auth/admin.guards';
 import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { ProductService } from './product.service';
@@ -63,12 +63,15 @@ export class ProductController {
         ? (req.query.category as string)
         : '';
 
+      const unit: string = req.query.unit ? (req.query.unit as string) : '';
+
       const product: Paginate<Product[]> = await this.productService.findAll(
         limit,
         page,
         keyword,
         status,
         category,
+        unit,
       );
 
       res.status(HttpStatus.OK).json(product);
@@ -85,9 +88,9 @@ export class ProductController {
     @Next() next: NextFunction,
   ): Promise<void> {
     try {
-      const category: Category = await this.productService.findOne(uuid);
+      const product: Product = await this.productService.findOne(uuid);
 
-      res.status(HttpStatus.OK).json(category);
+      res.status(HttpStatus.OK).json(product);
     } catch (error) {
       next(error);
     }
