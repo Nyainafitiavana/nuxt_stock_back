@@ -41,7 +41,7 @@ model Product {
   id                Int                 @id @default(autoincrement())
   uuid              String              @unique
   designation       String
-  unitId           Int?
+  unitId            Int?
   statusId          Int
   categoryId        Int?
   createdAt         DateTime            @default(now())
@@ -49,7 +49,7 @@ model Product {
   description       String?
   details           Details[]
   category          Category?            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  unit             Unit?            @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unit              Unit?            @relation(fields: [unitId], references: [id], onDelete: Cascade)
   status            Status              @relation(fields: [statusId], references: [id], onDelete: Cascade)
   productSalesPrice ProductSalesPrice[]
 }
@@ -66,15 +66,16 @@ model Unit {
 }
 
 model ProductSalesPrice {
-  id        Int      @id @default(autoincrement())
-  productId Int
-  unitPrice Float
-  wholesale Float?
-  createdAt DateTime @default(now())
-  statusId  Int
-  uuid      String   @unique
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  status    Status   @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  id                  Int      @id @default(autoincrement())
+  productId           Int
+  unitPrice           Float
+  wholesale           Float?
+  unitPurchasePrice   Float?
+  createdAt           DateTime @default(now())
+  statusId            Int
+  uuid                String   @unique
+  product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  status              Status   @relation(fields: [statusId], references: [id], onDelete: Cascade)
 }
 
 model Category {
@@ -110,7 +111,6 @@ model Details {
   productId               Int
   isStandardUnitPrice     Boolean
   quantity                Int
-  pricePerUnit            Float?
   mouvement               Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
   product                 Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
