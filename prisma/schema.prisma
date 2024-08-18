@@ -70,7 +70,7 @@ model ProductSalesPrice {
   productId           Int
   unitPrice           Float
   wholesale           Float?
-  unitPurchasePrice   Float?
+  purchasePrice   Float?
   createdAt           DateTime @default(now())
   statusId            Int
   uuid                String   @unique

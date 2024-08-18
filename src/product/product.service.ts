@@ -104,8 +104,9 @@ export class ProductService {
         },
         productSalesPrice: {
           select: {
-            unitPrice: true,
             wholesale: true,
+            unitPrice: true,
+            purchasePrice: true,
             createdAt: true,
             uuid: true,
             status: {

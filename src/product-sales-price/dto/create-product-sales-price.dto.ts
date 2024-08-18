@@ -9,4 +9,7 @@ export class CreateProductSalesPriceDto {
 
   @IsNumber()
   public wholesale: number;
+
+  @IsNumber()
+  public purchasePrice: number;
 }
