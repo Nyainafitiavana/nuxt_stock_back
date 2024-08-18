@@ -1,11 +1,12 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateProductSalesPriceDto } from './dto/create-product-sales-price.dto';
 import { Prisma, Product, ProductSalesPrice, Status } from '@prisma/client';
-import { STATUS } from '../../utils/constant';
-import { Paginate } from '../../utils/custom.interface';
+import { MESSAGE, STATUS } from '../../utils/constant';
+import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import Helper from '../../utils/helper';
 import { ProductService } from '../product/product.service';
+import { CustomException } from '../../utils/ExeptionCustom';
 
 @Injectable()
 export class ProductSalesPriceService {
@@ -22,29 +23,20 @@ export class ProductSalesPriceService {
       where: { code: STATUS.ACTIVE },
     });
 
-    const findOldStatus: Status = await this.prisma.status.findUnique({
-      where: { code: STATUS.OLD },
-    });
-
     const findProduct: Product = await this.productService.findOne(
       createProductSalesPriceDto.idProduct,
     );
 
-    //Check if product sales price active exits
+    //Check if active product sales price exist
     const findActiveProductSalePrice: ProductSalesPrice =
       await this.findCurrentSalesPriceProduct(
         createProductSalesPriceDto.idProduct,
       );
-    //Even we have a current price for the product, we need to update the current status to old then we can create a new product sales prices
+    //Even we have a current price for the product, we need to update the current status to old, then we can create a new product sales prices
     if (findActiveProductSalePrice) {
-      await this.prisma.productSalesPrice.update({
-        where: {
-          uuid: findActiveProductSalePrice.uuid,
-        },
-        data: {
-          statusId: findOldStatus.id,
-        },
-      });
+      await this.updateCurrentSalesPriceActiveToOld(
+        findActiveProductSalePrice.uuid,
+      );
     }
 
     //Remove idProduct (uuid) in the dto because we have already a real product object
@@ -136,5 +128,106 @@ export class ProductSalesPriceService {
     } else {
       return null;
     }
+  }
+
+  async findOneSalesPriceById(
+    salesPriceId: string,
+  ): Promise<ProductSalesPrice> {
+    const productSalesPrice: ProductSalesPrice =
+      await this.prisma.productSalesPrice.findUnique({
+        where: {
+          uuid: salesPriceId,
+        },
+        include: {
+          status: {
+            select: {
+              designation: true,
+              code: true,
+              uuid: true,
+            },
+          },
+        },
+      });
+
+    if (!productSalesPrice) {
+      throw new CustomException(MESSAGE.ID_NOT_FOUND, HttpStatus.CONFLICT);
+    }
+
+    return productSalesPrice;
+  }
+
+  async updateCurrentSalesPriceActiveToOld(
+    salesPriceId: string,
+  ): Promise<ExecuteResponse> {
+    const findOldStatus: Status = await this.prisma.status.findUnique({
+      where: { code: STATUS.OLD },
+    });
+
+    await this.prisma.productSalesPrice.update({
+      where: {
+        uuid: salesPriceId,
+      },
+      data: {
+        statusId: findOldStatus.id,
+      },
+    });
+
+    return { message: MESSAGE.OK, statusCode: HttpStatus.OK };
+  }
+
+  async turnToActiveOrToOldSalesPrices(
+    salesPriceId: string,
+    productId: string,
+  ): Promise<ExecuteResponse> {
+    //Check if active product sales price exist
+    const findActiveProductSalePrice: ProductSalesPrice =
+      await this.findCurrentSalesPriceProduct(productId);
+    //Even we have a current price for the product, we need to update the current status to old, then we can turn to activate another sales prices with salesPriceId
+    if (findActiveProductSalePrice) {
+      await this.updateCurrentSalesPriceActiveToOld(
+        findActiveProductSalePrice.uuid,
+      );
+    }
+
+    //Find the product sales price cable
+    const productSalesPrice: ProductSalesPrice =
+      await this.findOneSalesPriceById(salesPriceId);
+    //Find the status of this sales price cable
+    const findStatusProductSalesPrice: Status =
+      await this.prisma.status.findUnique({
+        where: { id: productSalesPrice.statusId },
+      });
+
+    let status: string;
+    //If the cable sales price is old we set the value of status to ACTIVE else set to OLD
+    if (findStatusProductSalesPrice.code === STATUS.OLD) {
+      status = STATUS.ACTIVE;
+    } else {
+      status = STATUS.OLD;
+    }
+
+    if (!status) {
+      throw new CustomException(
+        'Status_' + MESSAGE.ID_NOT_FOUND,
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    //Find the real object of status
+    const findStatus: Status = await this.prisma.status.findUnique({
+      where: { code: status },
+    });
+
+    //We can update a cable sales price when we have a value of status
+    await this.prisma.productSalesPrice.update({
+      where: {
+        uuid: salesPriceId,
+      },
+      data: {
+        statusId: findStatus.id,
+      },
+    });
+
+    return { message: MESSAGE.OK, statusCode: HttpStatus.OK };
   }
 }

@@ -9,13 +9,14 @@ import {
   Next,
   HttpStatus,
   Req,
+  Patch,
 } from '@nestjs/common';
 import { ProductSalesPriceService } from './product-sales-price.service';
 import { CreateProductSalesPriceDto } from './dto/create-product-sales-price.dto';
 import { NextFunction, Request, Response } from 'express';
 import { ProductSalesPrice } from '@prisma/client';
 import { AdminGuard } from '../auth/admin.guards';
-import { Paginate } from '../../utils/custom.interface';
+import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 
 @Controller('/api/sales-price')
 export class ProductSalesPriceController {
@@ -57,6 +58,27 @@ export class ProductSalesPriceController {
           limit,
           page,
           uuid,
+        );
+
+      res.status(HttpStatus.OK).json(productSalesPrice);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Patch('/active_or_old/:salesPriceId/product/:productId')
+  async turnSalesPriceToActiveOrOld(
+    @Param('salesPriceId') salesPriceId: string,
+    @Param('productId') productId: string,
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const productSalesPrice: ExecuteResponse =
+        await this.productSalesPriceService.turnToActiveOrToOldSalesPrices(
+          salesPriceId,
+          productId,
         );
 
       res.status(HttpStatus.OK).json(productSalesPrice);
