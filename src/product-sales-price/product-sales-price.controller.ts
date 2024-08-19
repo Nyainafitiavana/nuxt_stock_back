@@ -65,25 +65,4 @@ export class ProductSalesPriceController {
       next(error);
     }
   }
-
-  @UseGuards(AdminGuard)
-  @Patch('/active_or_old/:salesPriceId/product/:productId')
-  async turnSalesPriceToActiveOrOld(
-    @Param('salesPriceId') salesPriceId: string,
-    @Param('productId') productId: string,
-    @Res() res: Response,
-    @Next() next: NextFunction,
-  ): Promise<void> {
-    try {
-      const productSalesPrice: ExecuteResponse =
-        await this.productSalesPriceService.turnToActiveOrToOldSalesPrices(
-          salesPriceId,
-          productId,
-        );
-
-      res.status(HttpStatus.OK).json(productSalesPrice);
-    } catch (error) {
-      next(error);
-    }
-  }
 }
