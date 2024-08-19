@@ -76,6 +76,7 @@ export class ProductSalesPriceService {
       select: {
         unitPrice: true,
         wholesale: true,
+        purchasePrice: true,
         createdAt: true,
         uuid: true,
         status: {
