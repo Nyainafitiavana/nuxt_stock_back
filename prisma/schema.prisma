@@ -109,8 +109,8 @@ model Details {
   uuid                    String   @unique
   movementId              Int
   productId               Int
-  isStandardUnitPrice     Boolean
-  quantity                Int
+  isUnitPrice             Boolean
+  quantity                Float
   mouvement               Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
   product                 Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 }

@@ -8,6 +8,7 @@ import { CategoryModule } from '../category/category.module';
 import { ProductModule } from '../product/product.module';
 import { ProductSalesPriceModule } from '../product-sales-price/product-sales-price.module';
 import { UnitModule } from '../unit/unit.module';
+import { MovementModule } from '../movement/movement.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { UnitModule } from '../unit/unit.module';
     ProductModule,
     UnitModule,
     ProductSalesPriceModule,
+    MovementModule,
   ],
   controllers: [AppController],
   providers: [AppService],
