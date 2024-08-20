@@ -232,6 +232,53 @@ export class MovementService {
     return { data: data, totalRows: count, page: page };
   }
 
+  async findAllDetailsMovement(
+    limit: number = null,
+    page: number = null,
+    movementId: string,
+  ): Promise<Paginate<Details[]>> {
+    const query: Prisma.DetailsFindManyArgs = {
+      where: {
+        movement: {
+          uuid: movementId,
+        },
+      },
+      select: {
+        uuid: true,
+        product: {
+          select: {
+            uuid: true,
+            designation: true,
+            description: true,
+          },
+        },
+        isUnitPrice: true,
+        salesPrice: {
+          select: {
+            uuid: true,
+            unitPrice: true,
+            wholesale: true,
+            purchasePrice: true,
+          },
+        },
+      },
+      orderBy: [{ product: { designation: 'asc' } }],
+    };
+
+    if (limit && page) {
+      const offset: number = await this.helper.calculOffset(limit, page);
+      query.take = limit;
+      query.skip = offset;
+    }
+
+    const [data, count] = await this.prisma.$transaction([
+      this.prisma.details.findMany(query),
+      this.prisma.details.count({ where: query.where }),
+    ]);
+
+    return { data: data, totalRows: count, page: page };
+  }
+
   findOne(id: number) {
     return `This action returns a #${id} movement`;
   }

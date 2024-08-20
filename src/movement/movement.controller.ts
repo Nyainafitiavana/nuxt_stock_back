@@ -16,7 +16,7 @@ import { MovementService } from './movement.service';
 import { CreateMovementDto } from './dto/create-movement.dto';
 import { UpdateMovementDto } from './dto/update-movement.dto';
 import { NextFunction, Request, Response } from 'express';
-import { Movement, User } from '@prisma/client';
+import { Details, Movement, User } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guards';
 import { Paginate } from '../../utils/custom.interface';
 
@@ -70,6 +70,31 @@ export class MovementController {
       );
 
       res.status(HttpStatus.OK).json(movement);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':uuid/details')
+  async findAllDetailsMovement(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+    @Req() req: Request,
+    @Param('uuid') movementId: string,
+  ): Promise<void> {
+    try {
+      const limit: number = req.query.limit ? Number(req.query.limit) : null;
+      const page: number = req.query.page ? Number(req.query.page) : null;
+
+      const detailsMovement: Paginate<Details[]> =
+        await this.movementService.findAllDetailsMovement(
+          limit,
+          page,
+          movementId,
+        );
+
+      res.status(HttpStatus.OK).json(detailsMovement);
     } catch (error) {
       next(error);
     }

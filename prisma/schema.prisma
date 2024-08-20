@@ -113,7 +113,7 @@ model Details {
   salesPriceId            Int
   isUnitPrice             Boolean
   quantity                Float
-  mouvement               Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  movement               Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
   product                 Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   salesPrice              ProductSalesPrice  @relation(fields: [salesPriceId], references: [id], onDelete: Cascade)
 }
