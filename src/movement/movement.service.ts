@@ -59,6 +59,11 @@ export class MovementService {
       createNewMovement,
     );
 
+    delete createNewMovement.id;
+    delete createNewMovement.editorId;
+    delete createNewMovement.validatorId;
+    delete createNewMovement.statusId;
+
     return createNewMovement;
   }
 
