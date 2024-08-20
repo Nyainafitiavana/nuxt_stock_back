@@ -70,12 +70,13 @@ model ProductSalesPrice {
   productId           Int
   unitPrice           Float
   wholesale           Float?
-  purchasePrice   Float?
+  purchasePrice       Float?
   createdAt           DateTime @default(now())
   statusId            Int
   uuid                String   @unique
   product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   status              Status   @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  details             Details[]
 }
 
 model Category {
@@ -109,8 +110,10 @@ model Details {
   uuid                    String   @unique
   movementId              Int
   productId               Int
+  salesPriceId            Int
   isUnitPrice             Boolean
   quantity                Float
   mouvement               Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
   product                 Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  salesPrice              ProductSalesPrice  @relation(fields: [salesPriceId], references: [id], onDelete: Cascade)
 }

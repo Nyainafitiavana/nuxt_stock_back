@@ -3,17 +3,17 @@ import { CreateMovementDto } from './dto/create-movement.dto';
 import { UpdateMovementDto } from './dto/update-movement.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import Helper from '../../utils/helper';
-import { CreateCategoryDto } from '../category/dto/create-category.dto';
 import {
-  Category,
   Details,
   Movement,
+  Prisma,
   Product,
+  ProductSalesPrice,
   Status,
   User,
 } from '@prisma/client';
 import { MESSAGE, STATUS } from '../../utils/constant';
-import { ExecuteResponse } from '../../utils/custom.interface';
+import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { MovementDetails } from './details.interface';
 import { CustomException } from '../../utils/ExeptionCustom';
 
@@ -59,7 +59,6 @@ export class MovementService {
       createNewMovement,
     );
 
-    delete createNewMovement.id;
     delete createNewMovement.editorId;
     delete createNewMovement.validatorId;
     delete createNewMovement.statusId;
@@ -86,6 +85,28 @@ export class MovementService {
           HttpStatus.CONFLICT,
         );
       }
+
+      //OUTSTANDING is the default status of new movement
+      const findActiveStatusByCode: Status = await this.prisma.status.findFirst(
+        {
+          where: { code: STATUS.ACTIVE },
+        },
+      );
+      //Find current product sales price
+      const productSalesPrice: ProductSalesPrice =
+        await this.prisma.productSalesPrice.findFirst({
+          where: {
+            productId: product.id,
+            statusId: findActiveStatusByCode.id,
+          },
+        });
+
+      if (!productSalesPrice) {
+        throw new CustomException(
+          'Impossible to create a detail with the missing sales price of the product',
+          HttpStatus.CONFLICT,
+        );
+      }
       //Create new detail movement
       const createDetail: Details = await this.prisma.details.create({
         data: {
@@ -93,6 +114,7 @@ export class MovementService {
           movementId: movement.id,
           productId: product.id,
           isUnitPrice: item.isUnitPrice,
+          salesPriceId: productSalesPrice.id,
           quantity: item.quantity,
         },
       });
@@ -108,8 +130,106 @@ export class MovementService {
     return { message: MESSAGE.OK, statusCode: 200 };
   }
 
-  findAll() {
-    return `This action returns all movement`;
+  async findAll(
+    limit: number = null,
+    page: number = null,
+    isSales: boolean,
+    status: string,
+  ): Promise<Paginate<Movement[]>> {
+    const query: Prisma.MovementFindManyArgs = {
+      where: {
+        status: {
+          code:
+            status === STATUS.OUTSTANDING
+              ? STATUS.OUTSTANDING
+              : status === STATUS.COMPLETED
+                ? STATUS.COMPLETED
+                : STATUS.DELETED,
+        },
+        isSales: isSales,
+      },
+      select: {
+        createdAt: true,
+        updatedAt: true,
+        isSales: true,
+        uuid: true,
+        editor: {
+          select: {
+            uuid: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        validator: {
+          select: {
+            uuid: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        status: {
+          select: {
+            uuid: true,
+            designation: true,
+            code: true,
+          },
+        },
+        details: {
+          select: {
+            uuid: true,
+            isUnitPrice: true,
+            product: {
+              select: {
+                uuid: true,
+                designation: true,
+                description: true,
+                unit: {
+                  select: {
+                    uuid: true,
+                    designation: true,
+                  },
+                },
+                category: {
+                  select: {
+                    uuid: true,
+                    designation: true,
+                  },
+                },
+              },
+            },
+            salesPrice: {
+              select: {
+                uuid: true,
+                unitPrice: true,
+                wholesale: true,
+                purchasePrice: true,
+                status: {
+                  select: {
+                    uuid: true,
+                    designation: true,
+                    code: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }],
+    };
+
+    if (limit && page) {
+      const offset: number = await this.helper.calculOffset(limit, page);
+      query.take = limit;
+      query.skip = offset;
+    }
+
+    const [data, count] = await this.prisma.$transaction([
+      this.prisma.movement.findMany(query),
+      this.prisma.movement.count({ where: query.where }),
+    ]);
+
+    return { data: data, totalRows: count, page: page };
   }
 
   findOne(id: number) {

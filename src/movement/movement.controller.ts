@@ -15,10 +15,10 @@ import {
 import { MovementService } from './movement.service';
 import { CreateMovementDto } from './dto/create-movement.dto';
 import { UpdateMovementDto } from './dto/update-movement.dto';
-import { AdminGuard } from '../auth/admin.guards';
 import { NextFunction, Request, Response } from 'express';
 import { Movement, User } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guards';
+import { Paginate } from '../../utils/custom.interface';
 
 @Controller('/api/movement')
 export class MovementController {
@@ -45,9 +45,34 @@ export class MovementController {
     }
   }
 
+  @UseGuards(AuthGuard)
   @Get()
-  findAll() {
-    return this.movementService.findAll();
+  async findAll(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+    @Req() req: Request,
+  ): Promise<void> {
+    try {
+      const limit: number = req.query.limit ? Number(req.query.limit) : null;
+      const page: number = req.query.page ? Number(req.query.page) : null;
+      const isSales: string = req.query.isSales
+        ? (req.query.isSales as string)
+        : 'false';
+      const status: string = req.query.status
+        ? (req.query.status as string)
+        : '';
+
+      const movement: Paginate<Movement[]> = await this.movementService.findAll(
+        limit,
+        page,
+        JSON.parse(isSales),
+        status,
+      );
+
+      res.status(HttpStatus.OK).json(movement);
+    } catch (error) {
+      next(error);
+    }
   }
 
   @Get(':id')
