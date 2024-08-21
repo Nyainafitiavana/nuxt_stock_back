@@ -250,6 +250,18 @@ export class MovementService {
             uuid: true,
             designation: true,
             description: true,
+            category: {
+              select: {
+                uuid: true,
+                designation: true,
+              }
+            },
+            unit: {
+              select: {
+                uuid: true,
+                designation: true,
+              }
+            }
           },
         },
         isUnitPrice: true,
