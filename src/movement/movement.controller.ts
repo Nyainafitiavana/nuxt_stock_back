@@ -84,15 +84,8 @@ export class MovementController {
     @Param('uuid') movementId: string,
   ): Promise<void> {
     try {
-      const limit: number = req.query.limit ? Number(req.query.limit) : null;
-      const page: number = req.query.page ? Number(req.query.page) : null;
-
       const detailsMovement: Paginate<Details[]> =
-        await this.movementService.findAllDetailsMovement(
-          limit,
-          page,
-          movementId,
-        );
+        await this.movementService.findAllDetailsMovement(movementId);
 
       res.status(HttpStatus.OK).json(detailsMovement);
     } catch (error) {

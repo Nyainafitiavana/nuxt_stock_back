@@ -233,8 +233,6 @@ export class MovementService {
   }
 
   async findAllDetailsMovement(
-    limit: number = null,
-    page: number = null,
     movementId: string,
   ): Promise<Paginate<Details[]>> {
     const query: Prisma.DetailsFindManyArgs = {
@@ -254,14 +252,14 @@ export class MovementService {
               select: {
                 uuid: true,
                 designation: true,
-              }
+              },
             },
             unit: {
               select: {
                 uuid: true,
                 designation: true,
-              }
-            }
+              },
+            },
           },
         },
         isUnitPrice: true,
@@ -278,18 +276,12 @@ export class MovementService {
       orderBy: [{ product: { designation: 'asc' } }],
     };
 
-    if (limit && page) {
-      const offset: number = await this.helper.calculOffset(limit, page);
-      query.take = limit;
-      query.skip = offset;
-    }
-
     const [data, count] = await this.prisma.$transaction([
       this.prisma.details.findMany(query),
       this.prisma.details.count({ where: query.where }),
     ]);
 
-    return { data: data, totalRows: count, page: page };
+    return { data: data, totalRows: count, page: 1 };
   }
 
   findOne(id: number) {
