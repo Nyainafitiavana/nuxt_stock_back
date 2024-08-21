@@ -265,6 +265,7 @@ export class MovementService {
           },
         },
         isUnitPrice: true,
+        quantity: true,
         salesPrice: {
           select: {
             uuid: true,
