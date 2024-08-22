@@ -218,4 +218,66 @@ export class ProductService {
 
     return { message: MESSAGE.OK, statusCode: HttpStatus.OK };
   }
+
+  async getProductRemainingStock() {
+    return this.prisma.$queryRaw`
+      SELECT 
+        p."uuid" AS product_id,
+        p.designation AS product_name,
+        CASE 
+            WHEN c."uuid" IS NOT NULL AND c."uuid" != '' THEN c."uuid" 
+            ELSE '---' 
+        END AS category_id,
+        CASE 
+            WHEN c.designation IS NOT NULL AND c.designation != '' THEN c.designation 
+            ELSE '---' 
+        END AS category_name,
+        CASE 
+            WHEN u."uuid" IS NOT NULL AND u."uuid" != '' THEN u."uuid" 
+            ELSE '---' 
+        END AS unit_id,
+        CASE 
+            WHEN u.designation IS NOT NULL AND u.designation != '' THEN u.designation 
+            ELSE '---' 
+        END AS unit_name,
+        COALESCE(
+            (
+                SUM(CASE 
+                    WHEN m."isSales" = false AND status_movement.code = 'OSD' THEN d.quantity 
+                    ELSE 0 
+                END) - 
+                SUM(CASE 
+                    WHEN m."isSales" = true AND status_movement.code = 'OSD' THEN d.quantity 
+                    ELSE 0 
+                END)
+            ), 0) AS remaining_stock,
+        COALESCE(psp."uuid", '') AS product_sales_price_id,
+        COALESCE(psp."unitPrice", 0) AS unit_price,
+        COALESCE(psp."wholesale", 0) AS wholesale_price,
+        COALESCE(psp."purchasePrice", 0) AS purchase_price
+    FROM "Product" p 
+    LEFT JOIN "Status" status_product on status_product.id = p."statusId" 
+    LEFT JOIN "Category" c ON c.id = p."categoryId" 
+    LEFT JOIN "Unit" u ON u.id = p."unitId" 
+    LEFT JOIN "Details" d ON d."productId" = p.id 
+    LEFT JOIN "Movement" m ON m.id = d."movementId" 
+    LEFT JOIN "Status" status_movement ON status_movement.id = m."statusId" 
+    LEFT JOIN "ProductSalesPrice" psp ON psp."productId" = p.id 
+    LEFT JOIN "Status" status_sales_price ON status_sales_price.id = psp."statusId" 
+        AND status_product.code = 'ACT'
+        AND status_sales_price.code = 'ACT'
+    GROUP BY 
+        p.designation,
+        p."uuid",
+        c."uuid",
+        c.designation,
+        u."uuid",
+        u.designation,
+        psp."unitPrice",
+        psp."wholesale",
+        psp."purchasePrice",
+        psp."uuid"
+    ORDER BY p.designation ASC;
+    `;
+  }
 }

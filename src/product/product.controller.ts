@@ -131,4 +131,20 @@ export class ProductController {
       next(error);
     }
   }
+
+  @UseGuards(AuthGuard)
+  @Get('/remaining/stock')
+  async getProductRemaining(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const productRemaining =
+        await this.productService.getProductRemainingStock();
+
+      res.status(HttpStatus.OK).json(productRemaining);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
