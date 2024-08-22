@@ -13,7 +13,7 @@ export interface DetailsWithStock {
   category_name: string;
   unit_id: string;
   unit_name: string;
-  is_unit_price: string;
+  is_unit_price: boolean;
   product_sales_price_id: string;
   unit_price: number;
   wholesale_price: number;
