@@ -14,7 +14,7 @@ import {
 } from '@prisma/client';
 import { MESSAGE, STATUS } from '../../utils/constant';
 import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
-import { MovementDetails } from './details.interface';
+import { DetailsWithStock, MovementDetails } from './details.interface';
 import { CustomException } from '../../utils/ExeptionCustom';
 
 @Injectable()
@@ -234,54 +234,58 @@ export class MovementService {
 
   async findAllDetailsMovement(
     movementId: string,
-  ): Promise<Paginate<Details[]>> {
-    const query: Prisma.DetailsFindManyArgs = {
+  ): Promise<DetailsWithStock[]> {
+    const findMovement: Movement = await this.prisma.movement.findUnique({
       where: {
-        movement: {
-          uuid: movementId,
-        },
+        uuid: movementId,
       },
-      select: {
-        uuid: true,
-        product: {
-          select: {
-            uuid: true,
-            designation: true,
-            description: true,
-            category: {
-              select: {
-                uuid: true,
-                designation: true,
-              },
-            },
-            unit: {
-              select: {
-                uuid: true,
-                designation: true,
-              },
-            },
-          },
-        },
-        isUnitPrice: true,
-        quantity: true,
-        salesPrice: {
-          select: {
-            uuid: true,
-            unitPrice: true,
-            wholesale: true,
-            purchasePrice: true,
-          },
-        },
-      },
-      orderBy: [{ product: { designation: 'asc' } }],
-    };
+    });
 
-    const [data, count] = await this.prisma.$transaction([
-      this.prisma.details.findMany(query),
-      this.prisma.details.count({ where: query.where }),
-    ]);
+    if (!findMovement) {
+      throw new CustomException(
+        'Movement_' + MESSAGE.ID_NOT_FOUND,
+        HttpStatus.CONFLICT,
+      );
+    }
 
-    return { data: data, totalRows: count, page: 1 };
+    return this.prisma.$queryRaw`
+      SELECT 
+        d.uuid AS detail_id,
+        p."uuid" AS product_id,
+        p.designation AS product_name,
+        COALESCE(d.quantity, 0) AS quantity,
+        COALESCE(c."uuid", '---') AS category_id,
+        COALESCE(c.designation, '---') AS category_name,
+        COALESCE(u."uuid", '---') AS unit_id,
+        COALESCE(u.designation, '---') AS unit_name,
+        COALESCE(d."isUnitPrice", false) AS is_unit_price,
+        COALESCE(psp."unitPrice", 0) AS unit_price,
+        COALESCE(psp."wholesale", 0) AS wholesale_price,
+        COALESCE(psp."purchasePrice", 0) AS purchase_price,
+        COALESCE(psp."uuid", '') AS product_sales_price_id,
+        COALESCE(
+            (
+                SELECT SUM(CASE 
+                            WHEN m1."isSales" = false THEN d1.quantity 
+                            ELSE -d1.quantity 
+                        END)
+                FROM "Details" d1
+                JOIN "Movement" m1 ON m1.id = d1."movementId"
+                JOIN "Status" status_movement1 ON status_movement1.id = m1."statusId"
+                WHERE d1."productId" = p.id 
+                AND status_movement1.code = 'CMP'
+            ), 0
+        ) AS remaining_stock
+    FROM "Details" d
+    JOIN "Product" p ON p.id = d."productId"
+    LEFT JOIN "Category" c ON c.id = p."categoryId"
+    LEFT JOIN "Unit" u ON u.id = p."unitId"
+    LEFT JOIN "ProductSalesPrice" psp ON psp.id = d."salesPriceId"
+    LEFT JOIN "Movement" m ON m.id = d."movementId"
+    LEFT JOIN "Status" status_movement ON status_movement.id = m."statusId"
+    WHERE d."movementId" = ${findMovement.id}
+    ORDER BY p.designation ASC;
+    `;
   }
 
   findOne(id: number) {
