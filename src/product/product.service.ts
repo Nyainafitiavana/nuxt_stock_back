@@ -243,11 +243,11 @@ export class ProductService {
         COALESCE(
             (
                 SUM(CASE 
-                    WHEN m."isSales" = false AND status_movement.code = 'OSD' THEN d.quantity 
+                    WHEN m."isSales" = false AND status_movement.code = ${STATUS.COMPLETED} THEN d.quantity 
                     ELSE 0 
                 END) - 
                 SUM(CASE 
-                    WHEN m."isSales" = true AND status_movement.code = 'OSD' THEN d.quantity 
+                    WHEN m."isSales" = true AND status_movement.code = ${STATUS.COMPLETED} THEN d.quantity 
                     ELSE 0 
                 END)
             ), 0) AS remaining_stock,
@@ -264,8 +264,8 @@ export class ProductService {
     LEFT JOIN "Status" status_movement ON status_movement.id = m."statusId" 
     LEFT JOIN "ProductSalesPrice" psp ON psp."productId" = p.id 
     LEFT JOIN "Status" status_sales_price ON status_sales_price.id = psp."statusId" 
-        AND status_product.code = 'ACT'
-        AND status_sales_price.code = 'ACT'
+        AND status_product.code = '${STATUS.ACTIVE}'
+        AND status_sales_price.code = '${STATUS.ACTIVE}'
     GROUP BY 
         p.designation,
         p."uuid",
