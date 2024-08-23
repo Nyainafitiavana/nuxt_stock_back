@@ -313,6 +313,22 @@ export class MovementService {
     //Create new details
     await this.createMovementDetailsService(details, findMovement);
 
+    const statusRejected = await this.prisma.status.findUnique({
+      where: { code: STATUS.REJECTED },
+    });
+
+    //Update status movement to outstanding it's equal rejected after update
+    if (findMovement.statusId === statusRejected.id) {
+      const statusOutstanding = await this.prisma.status.findUnique({
+        where: { code: STATUS.OUTSTANDING },
+      });
+
+      await this.prisma.movement.update({
+        where: { id: findMovement.id },
+        data: { statusId: statusOutstanding.id },
+      });
+    }
+
     return {
       message: `Update details of movement ${movementId} with success.`,
       statusCode: 200,
