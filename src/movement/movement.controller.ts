@@ -13,12 +13,13 @@ import {
 } from '@nestjs/common';
 import { MovementService } from './movement.service';
 import { CreateMovementDto } from './dto/create-movement.dto';
-import { UpdateDetailsDto } from './dto/update-movement.dto';
+import { RejectDto, UpdateDetailsDto } from './dto/update-movement.dto';
 import { NextFunction, Request, Response } from 'express';
 import { Movement, User } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guards';
 import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { DetailsWithStock } from './details.interface';
+import { AdminGuard } from '../auth/admin.guards';
 
 @Controller('/api/movement')
 export class MovementController {
@@ -113,8 +114,46 @@ export class MovementController {
     }
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.movementService.findOne(+id);
+  @UseGuards(AdminGuard)
+  @Patch(':uuid/validate')
+  async validateMovement(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Next() next: NextFunction,
+    @Param('uuid') movementId: string,
+  ): Promise<void> {
+    try {
+      const userConnect: User = req['user'];
+      const validateMovement: ExecuteResponse =
+        await this.movementService.validateMovement(movementId, userConnect);
+
+      res.status(HttpStatus.OK).json(validateMovement);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Patch(':uuid/reject')
+  async rejectMovement(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Next() next: NextFunction,
+    @Param('uuid') movementId: string,
+    @Body() rejectDto: RejectDto,
+  ): Promise<void> {
+    try {
+      const userConnect: User = req['user'];
+      const validateMovement: ExecuteResponse =
+        await this.movementService.rejectMovement(
+          movementId,
+          userConnect,
+          rejectDto,
+        );
+
+      res.status(HttpStatus.OK).json(validateMovement);
+    } catch (error) {
+      next(error);
+    }
   }
 }

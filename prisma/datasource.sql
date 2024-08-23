@@ -14,6 +14,9 @@ VALUES(4, '1c2c0990-1652-413a-a574-b0c0df184bac', 'Outstanding', 'OSD');
 INSERT INTO public."Status"
 (id, "uuid", designation, code)
 VALUES(5, '75a2e68c-d3d1-4d0f-90ab-222a5042c0d1', 'Old', 'OLD');
+INSERT INTO public."Status"
+(id, "uuid", designation, code)
+VALUES(6, '6fc53137-308f-4c58-b6d7-9b9509cfa846', 'Rejected', 'RJT');
 
 ---insert default user----
 INSERT INTO public."User"

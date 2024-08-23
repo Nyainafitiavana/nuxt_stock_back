@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateMovementDto } from './dto/create-movement.dto';
-import { UpdateMovementDto } from './dto/update-movement.dto';
+import { RejectDto, UpdateMovementDto } from './dto/update-movement.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import Helper from '../../utils/helper';
 import {
@@ -322,6 +322,91 @@ export class MovementService {
   async removeDetailsMovement(movementId: number): Promise<ExecuteResponse> {
     await this.prisma.details.deleteMany({
       where: { movementId: movementId },
+    });
+
+    return {
+      message: `Deleted all details of movement ${movementId} with success.`,
+      statusCode: 200,
+    };
+  }
+
+  async validateMovement(
+    movementId: string,
+    user: User,
+  ): Promise<ExecuteResponse> {
+    const statusCompleted: Status = await this.prisma.status.findUnique({
+      where: {
+        code: STATUS.COMPLETED,
+      },
+    });
+
+    //Find movement
+    const movement: Movement = await this.prisma.movement.findUnique({
+      where: {
+        uuid: movementId,
+      },
+    });
+
+    if (!movement) {
+      throw new CustomException(
+        'Movement_' + MESSAGE.ID_NOT_FOUND,
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    await this.prisma.movement.update({
+      where: { uuid: movementId },
+      data: {
+        statusId: statusCompleted.id,
+        validatorId: user.id,
+      },
+    });
+
+    return {
+      message: `Validate movement ${movementId} with success.`,
+      statusCode: 200,
+    };
+  }
+
+  async rejectMovement(
+    movementId: string,
+    user: User,
+    rejectDto: RejectDto,
+  ): Promise<ExecuteResponse> {
+    //Reject observation is required
+    if (rejectDto.observation === '') {
+      throw new CustomException(
+        'Reject observation is required',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const statusRejected: Status = await this.prisma.status.findUnique({
+      where: {
+        code: STATUS.REJECTED,
+      },
+    });
+
+    //Find movement
+    const movement: Movement = await this.prisma.movement.findUnique({
+      where: {
+        uuid: movementId,
+      },
+    });
+
+    if (!movement) {
+      throw new CustomException(
+        'Movement_' + MESSAGE.ID_NOT_FOUND,
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    await this.prisma.movement.update({
+      where: { uuid: movementId },
+      data: {
+        statusId: statusRejected.id,
+        validatorId: user.id,
+        observation: rejectDto.observation,
+      },
     });
 
     return {

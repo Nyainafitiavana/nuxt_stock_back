@@ -12,4 +12,5 @@ export const STATUS = {
   OUTSTANDING: 'OSD',
   COMPLETED: 'CMP',
   OLD: 'OLD',
+  REJECTED: 'RJT',
 };
