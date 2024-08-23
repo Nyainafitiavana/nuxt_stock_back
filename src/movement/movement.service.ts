@@ -292,11 +292,41 @@ export class MovementService {
     return `This action returns a #${id} movement`;
   }
 
-  update(id: number, updateMovementDto: UpdateMovementDto) {
-    return `This action updates a #${id} movement`;
+  async updateDetailMovement(
+    movementId: string,
+    details: MovementDetails[],
+  ): Promise<ExecuteResponse> {
+    const findMovement: Movement = await this.prisma.movement.findUnique({
+      where: {
+        uuid: movementId,
+      },
+    });
+
+    if (!findMovement) {
+      throw new CustomException(
+        'Movement_' + MESSAGE.ID_NOT_FOUND,
+        HttpStatus.CONFLICT,
+      );
+    }
+    //Remove all old details before create a the new details
+    await this.removeDetailsMovement(findMovement.id);
+    //Create new details
+    await this.createMovementDetailsService(details, findMovement);
+
+    return {
+      message: `Update details of movement ${movementId} with success.`,
+      statusCode: 200,
+    };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} movement`;
+  async removeDetailsMovement(movementId: number): Promise<ExecuteResponse> {
+    await this.prisma.details.deleteMany({
+      where: { movementId: movementId },
+    });
+
+    return {
+      message: `Deleted all details of movement ${movementId} with success.`,
+      statusCode: 200,
+    };
   }
 }

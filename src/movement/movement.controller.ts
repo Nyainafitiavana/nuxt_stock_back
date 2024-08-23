@@ -5,7 +5,6 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   UseGuards,
   Res,
   Next,
@@ -14,11 +13,11 @@ import {
 } from '@nestjs/common';
 import { MovementService } from './movement.service';
 import { CreateMovementDto } from './dto/create-movement.dto';
-import { UpdateMovementDto } from './dto/update-movement.dto';
+import { UpdateDetailsDto } from './dto/update-movement.dto';
 import { NextFunction, Request, Response } from 'express';
 import { Movement, User } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guards';
-import { Paginate } from '../../utils/custom.interface';
+import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { DetailsWithStock } from './details.interface';
 
 @Controller('/api/movement')
@@ -93,21 +92,29 @@ export class MovementController {
     }
   }
 
+  @UseGuards(AuthGuard)
+  @Patch(':uuid/update_details')
+  async updateDetailMovement(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+    @Param('uuid') movementId: string,
+    @Body() updateDetailsDto: UpdateDetailsDto,
+  ): Promise<void> {
+    try {
+      const detailsMovement: ExecuteResponse =
+        await this.movementService.updateDetailMovement(
+          movementId,
+          updateDetailsDto.details,
+        );
+
+      res.status(HttpStatus.OK).json(detailsMovement);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.movementService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateMovementDto: UpdateMovementDto,
-  ) {
-    return this.movementService.update(+id, updateMovementDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.movementService.remove(+id);
   }
 }
