@@ -397,7 +397,7 @@ export class MovementService {
     if (findStatusMovement.code === STATUS.REJECTED) {
       throw new CustomException(
         "Can't validate an already rejected movement",
-        HttpStatus.CONFLICT,
+        HttpStatus.NOT_ACCEPTABLE,
       );
     }
 
@@ -454,7 +454,7 @@ export class MovementService {
     if (findStatusMovement.code === STATUS.COMPLETED) {
       throw new CustomException(
         "Can't reject an already completed movement",
-        HttpStatus.CONFLICT,
+        HttpStatus.NOT_ACCEPTABLE,
       );
     }
 
@@ -468,7 +468,7 @@ export class MovementService {
     });
 
     return {
-      message: `Deleted all details of movement ${movementId} with success.`,
+      message: `Rejected of movement ${movementId} with success.`,
       statusCode: 200,
     };
   }
