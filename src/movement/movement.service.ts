@@ -144,7 +144,7 @@ export class MovementService {
               ? STATUS.OUTSTANDING
               : status === STATUS.COMPLETED
                 ? STATUS.COMPLETED
-                : STATUS.DELETED,
+                : STATUS.REJECTED,
         },
         isSales: isSales,
       },
