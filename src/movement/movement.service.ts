@@ -288,13 +288,10 @@ export class MovementService {
     `;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} movement`;
-  }
-
   async updateDetailMovement(
     movementId: string,
     details: MovementDetails[],
+    userConnect: User,
   ): Promise<ExecuteResponse> {
     const findMovement: Movement = await this.prisma.movement.findUnique({
       where: {
@@ -308,6 +305,29 @@ export class MovementService {
         HttpStatus.CONFLICT,
       );
     }
+    //Find status of movement to verify the privilege
+    const findStatusMovement: Status = await this.prisma.status.findFirst({
+      where: { id: findMovement.statusId },
+    });
+
+    if (
+      findStatusMovement.code === STATUS.OUTSTANDING &&
+      !userConnect.isAdmin
+    ) {
+      throw new CustomException(
+        "Can't update an already outstanding movement if you aren't an admin.",
+        HttpStatus.NOT_ACCEPTABLE,
+      );
+    } else if (
+      findStatusMovement.code === STATUS.REJECTED &&
+      userConnect.isAdmin
+    ) {
+      throw new CustomException(
+        "Can't update an already rejected movement if you are an admin.",
+        HttpStatus.NOT_ACCEPTABLE,
+      );
+    }
+
     //Remove all old details before create a the new details
     await this.removeDetailsMovement(findMovement.id);
     //Create new details
@@ -370,6 +390,17 @@ export class MovementService {
       );
     }
 
+    const findStatusMovement: Status = await this.prisma.status.findFirst({
+      where: { id: movement.statusId },
+    });
+
+    if (findStatusMovement.code === STATUS.REJECTED) {
+      throw new CustomException(
+        "Can't validate an already rejected movement",
+        HttpStatus.CONFLICT,
+      );
+    }
+
     await this.prisma.movement.update({
       where: { uuid: movementId },
       data: {
@@ -412,6 +443,17 @@ export class MovementService {
     if (!movement) {
       throw new CustomException(
         'Movement_' + MESSAGE.ID_NOT_FOUND,
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    const findStatusMovement: Status = await this.prisma.status.findFirst({
+      where: { id: movement.statusId },
+    });
+
+    if (findStatusMovement.code === STATUS.COMPLETED) {
+      throw new CustomException(
+        "Can't reject an already completed movement",
         HttpStatus.CONFLICT,
       );
     }

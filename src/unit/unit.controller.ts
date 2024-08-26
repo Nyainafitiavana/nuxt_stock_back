@@ -41,7 +41,7 @@ export class UnitController {
     }
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AdminGuard)
   @Get()
   async findAll(
     @Res() res: Response,

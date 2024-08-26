@@ -100,12 +100,14 @@ export class MovementController {
     @Next() next: NextFunction,
     @Param('uuid') movementId: string,
     @Body() updateDetailsDto: UpdateDetailsDto,
+    @Req() req: Request,
   ): Promise<void> {
     try {
       const detailsMovement: ExecuteResponse =
         await this.movementService.updateDetailMovement(
           movementId,
           updateDetailsDto.details,
+          req['user'],
         );
 
       res.status(HttpStatus.OK).json(detailsMovement);

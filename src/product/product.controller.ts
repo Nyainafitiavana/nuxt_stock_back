@@ -42,7 +42,7 @@ export class ProductController {
     }
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AdminGuard)
   @Get()
   async findAll(
     @Res() res: Response,
