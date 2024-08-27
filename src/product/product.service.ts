@@ -219,35 +219,28 @@ export class ProductService {
     return { message: MESSAGE.OK, statusCode: HttpStatus.OK };
   }
 
-  async getProductRemainingStock() {
-    return this.prisma.$queryRaw`
+  async getProductRemainingStock(
+    limit: number = null,
+    page: number = null,
+    keyword: string = null,
+  ): Promise<{ data: any; count: number }> {
+    // Base query without pagination
+    let baseQuery = `
       SELECT 
         p."uuid" AS product_id,
         p.designation AS product_name,
-        CASE 
-            WHEN c."uuid" IS NOT NULL AND c."uuid" != '' THEN c."uuid" 
-            ELSE '---' 
-        END AS category_id,
-        CASE 
-            WHEN c.designation IS NOT NULL AND c.designation != '' THEN c.designation 
-            ELSE '---' 
-        END AS category_name,
-        CASE 
-            WHEN u."uuid" IS NOT NULL AND u."uuid" != '' THEN u."uuid" 
-            ELSE '---' 
-        END AS unit_id,
-        CASE 
-            WHEN u.designation IS NOT NULL AND u.designation != '' THEN u.designation 
-            ELSE '---' 
-        END AS unit_name,
+        COALESCE(c."uuid", '---') AS category_id,
+        COALESCE(c.designation, '---') AS category_name,
+        COALESCE(u."uuid", '---') AS unit_id,
+        COALESCE(u.designation, '---') AS unit_name,
         COALESCE(
             (
                 SUM(CASE 
-                    WHEN m."isSales" = false AND status_movement.code = ${STATUS.COMPLETED} THEN d.quantity 
+                    WHEN m."isSales" = false AND status_movement.code = '${STATUS.COMPLETED}' THEN d.quantity 
                     ELSE 0 
                 END) - 
                 SUM(CASE 
-                    WHEN m."isSales" = true AND status_movement.code = ${STATUS.COMPLETED} THEN d.quantity 
+                    WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' THEN d.quantity 
                     ELSE 0 
                 END)
             ), 0) AS remaining_stock,
@@ -255,29 +248,70 @@ export class ProductService {
         COALESCE(psp."unitPrice", 0) AS unit_price,
         COALESCE(psp."wholesale", 0) AS wholesale_price,
         COALESCE(psp."purchasePrice", 0) AS purchase_price
-    FROM "Product" p 
-    LEFT JOIN "Status" status_product on status_product.id = p."statusId" 
-    LEFT JOIN "Category" c ON c.id = p."categoryId" 
-    LEFT JOIN "Unit" u ON u.id = p."unitId" 
-    LEFT JOIN "Details" d ON d."productId" = p.id 
-    LEFT JOIN "Movement" m ON m.id = d."movementId" 
-    LEFT JOIN "Status" status_movement ON status_movement.id = m."statusId" 
-    LEFT JOIN "ProductSalesPrice" psp ON psp."productId" = p.id 
-    LEFT JOIN "Status" status_sales_price ON status_sales_price.id = psp."statusId" 
-        AND status_product.code = '${STATUS.ACTIVE}'
+      FROM "Product" p 
+      LEFT JOIN "Status" status_product ON status_product.id = p."statusId" 
+      LEFT JOIN "Category" c ON c.id = p."categoryId" 
+      LEFT JOIN "Unit" u ON u.id = p."unitId" 
+      LEFT JOIN "Details" d ON d."productId" = p.id 
+      LEFT JOIN "Movement" m ON m.id = d."movementId" 
+      LEFT JOIN "Status" status_movement ON status_movement.id = m."statusId" 
+      LEFT JOIN "ProductSalesPrice" psp ON psp."productId" = p.id 
+      LEFT JOIN "Status" status_sales_price ON status_sales_price.id = psp."statusId" 
+      WHERE status_product.code = '${STATUS.ACTIVE}'
         AND status_sales_price.code = '${STATUS.ACTIVE}'
-    GROUP BY 
-        p.designation,
+    `;
+
+    // Adding the keyword condition
+    if (keyword && keyword !== '') {
+      baseQuery += ` AND LOWER(p.designation) LIKE '%' || LOWER('${keyword}') || '%'`;
+    }
+
+    // Grouping and ordering
+    const groupByClause = `
+      GROUP BY 
         p."uuid",
+        p.designation,
         c."uuid",
         c.designation,
         u."uuid",
         u.designation,
+        psp."uuid",
         psp."unitPrice",
         psp."wholesale",
-        psp."purchasePrice",
-        psp."uuid"
-    ORDER BY p.designation ASC;
+        psp."purchasePrice"
+      ORDER BY p.designation ASC
     `;
+
+    // Pagination logic
+    let paginatedQuery = baseQuery + groupByClause;
+    if (limit && page) {
+      const offset = (page - 1) * limit;
+      paginatedQuery += ` LIMIT ${limit} OFFSET ${offset}`;
+    }
+
+    // Calculate count without pagination
+    const countQuery =
+      baseQuery +
+      `
+      GROUP BY 
+        p."uuid",
+        p.designation,
+        c."uuid",
+        c.designation,
+        u."uuid",
+        u.designation,
+        psp."uuid",
+        psp."unitPrice",
+        psp."wholesale",
+        psp."purchasePrice"
+    `;
+
+    const data = await this.prisma.$queryRawUnsafe(paginatedQuery);
+    const countResult = await this.prisma.$queryRawUnsafe(
+      `SELECT COUNT(*) FROM (${countQuery}) AS count_query`,
+    );
+    const count = Number(countResult[0].count);
+
+    return { data, count };
   }
 }

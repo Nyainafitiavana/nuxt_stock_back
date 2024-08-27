@@ -20,6 +20,7 @@ import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { AuthGuard } from '../auth/auth.guards';
+import { convertBigIntToString } from '../../utils/utilis';
 
 @Controller('/api/product')
 export class ProductController {
@@ -137,12 +138,28 @@ export class ProductController {
   async getProductRemaining(
     @Res() res: Response,
     @Next() next: NextFunction,
+    @Req() req: Request,
   ): Promise<void> {
     try {
-      const productRemaining =
-        await this.productService.getProductRemainingStock();
+      const limit: number = req.query.limit ? Number(req.query.limit) : null;
+      const page: number = req.query.page ? Number(req.query.page) : null;
+      const keyword: string = req.query.value
+        ? (req.query.value as string)
+        : '';
 
-      res.status(HttpStatus.OK).json(productRemaining);
+      const { data, count } =
+        await this.productService.getProductRemainingStock(
+          limit,
+          page,
+          keyword,
+        );
+
+      // Convert BigInt values to strings
+      const formattedData = convertBigIntToString(data);
+
+      res
+        .status(HttpStatus.OK)
+        .json({ data: formattedData, totalRows: count, page: page });
     } catch (error) {
       next(error);
     }
