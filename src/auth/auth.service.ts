@@ -27,7 +27,6 @@ export class AuthService {
     }
 
     delete user.password;
-    delete user.id;
 
     return {
       statusCode: HttpStatus.OK,

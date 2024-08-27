@@ -1,10 +1,11 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateMovementDto } from './dto/create-movement.dto';
-import { RejectDto, UpdateMovementDto } from './dto/update-movement.dto';
+import { RejectDto } from './dto/update-movement.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import Helper from '../../utils/helper';
 import {
   Details,
+  HistoryValidation,
   Movement,
   Prisma,
   Product,
@@ -60,7 +61,6 @@ export class MovementService {
     );
 
     delete createNewMovement.editorId;
-    delete createNewMovement.validatorId;
     delete createNewMovement.statusId;
 
     return createNewMovement;
@@ -154,13 +154,6 @@ export class MovementService {
         isSales: true,
         uuid: true,
         editor: {
-          select: {
-            uuid: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        validator: {
           select: {
             uuid: true,
             firstName: true,
@@ -328,7 +321,7 @@ export class MovementService {
       );
     }
 
-    //Remove all old details before create a the new details
+    //Remove all old details before create a new details
     await this.removeDetailsMovement(findMovement.id);
     //Create new details
     await this.createMovementDetailsService(details, findMovement);
@@ -401,11 +394,29 @@ export class MovementService {
       );
     }
 
+    //Create history validation
+    const insertNewHistoryValidation: HistoryValidation =
+      await this.prisma.historyValidation.create({
+        data: {
+          movementId: movement.id,
+          validatorId: user.id,
+          statusId: statusCompleted.id,
+          uuid: await this.helper.generateUuid(),
+        },
+      });
+
+    if (!insertNewHistoryValidation) {
+      throw new CustomException(
+        'An error occurs during validation',
+        HttpStatus.FAILED_DEPENDENCY,
+      );
+    }
+
+    //update movement status
     await this.prisma.movement.update({
       where: { uuid: movementId },
       data: {
         statusId: statusCompleted.id,
-        validatorId: user.id,
       },
     });
 
@@ -458,12 +469,30 @@ export class MovementService {
       );
     }
 
+    //Create history validation
+    const insertNewHistoryValidation: HistoryValidation =
+      await this.prisma.historyValidation.create({
+        data: {
+          movementId: movement.id,
+          validatorId: user.id,
+          statusId: statusRejected.id,
+          uuid: await this.helper.generateUuid(),
+          observation: rejectDto.observation,
+        },
+      });
+
+    if (!insertNewHistoryValidation) {
+      throw new CustomException(
+        'An error occurs during reject',
+        HttpStatus.FAILED_DEPENDENCY,
+      );
+    }
+
+    //Update Status of movement
     await this.prisma.movement.update({
       where: { uuid: movementId },
       data: {
         statusId: statusRejected.id,
-        validatorId: user.id,
-        observation: rejectDto.observation,
       },
     });
 
