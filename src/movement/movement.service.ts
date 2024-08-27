@@ -17,6 +17,7 @@ import { MESSAGE, STATUS } from '../../utils/constant';
 import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { DetailsWithStock, MovementDetails } from './details.interface';
 import { CustomException } from '../../utils/ExeptionCustom';
+import { IHistoryValidation } from './historyValidation.interface';
 
 @Injectable()
 export class MovementService {
@@ -130,6 +131,23 @@ export class MovementService {
     return { message: MESSAGE.OK, statusCode: 200 };
   }
 
+  async findMovement(movementId: string): Promise<Movement> {
+    const movement: Movement = await this.prisma.movement.findUnique({
+      where: {
+        uuid: movementId,
+      },
+    });
+
+    if (!movement) {
+      throw new CustomException(
+        'Movement_' + MESSAGE.ID_NOT_FOUND,
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    return movement;
+  }
+
   async findAll(
     limit: number = null,
     page: number = null,
@@ -228,18 +246,7 @@ export class MovementService {
   async findAllDetailsMovement(
     movementId: string,
   ): Promise<DetailsWithStock[]> {
-    const findMovement: Movement = await this.prisma.movement.findUnique({
-      where: {
-        uuid: movementId,
-      },
-    });
-
-    if (!findMovement) {
-      throw new CustomException(
-        'Movement_' + MESSAGE.ID_NOT_FOUND,
-        HttpStatus.CONFLICT,
-      );
-    }
+    const findMovement: Movement = await this.findMovement(movementId);
 
     return this.prisma.$queryRaw`
       SELECT 
@@ -286,18 +293,7 @@ export class MovementService {
     details: MovementDetails[],
     userConnect: User,
   ): Promise<ExecuteResponse> {
-    const findMovement: Movement = await this.prisma.movement.findUnique({
-      where: {
-        uuid: movementId,
-      },
-    });
-
-    if (!findMovement) {
-      throw new CustomException(
-        'Movement_' + MESSAGE.ID_NOT_FOUND,
-        HttpStatus.CONFLICT,
-      );
-    }
+    const findMovement: Movement = await this.findMovement(movementId);
     //Find status of movement to verify the privilege
     const findStatusMovement: Status = await this.prisma.status.findFirst({
       where: { id: findMovement.statusId },
@@ -370,21 +366,10 @@ export class MovementService {
     });
 
     //Find movement
-    const movement: Movement = await this.prisma.movement.findUnique({
-      where: {
-        uuid: movementId,
-      },
-    });
-
-    if (!movement) {
-      throw new CustomException(
-        'Movement_' + MESSAGE.ID_NOT_FOUND,
-        HttpStatus.CONFLICT,
-      );
-    }
+    const findMovement: Movement = await this.findMovement(movementId);
 
     const findStatusMovement: Status = await this.prisma.status.findFirst({
-      where: { id: movement.statusId },
+      where: { id: findMovement.statusId },
     });
 
     if (findStatusMovement.code === STATUS.REJECTED) {
@@ -398,7 +383,7 @@ export class MovementService {
     const insertNewHistoryValidation: HistoryValidation =
       await this.prisma.historyValidation.create({
         data: {
-          movementId: movement.id,
+          movementId: findMovement.id,
           validatorId: user.id,
           statusId: statusCompleted.id,
           uuid: await this.helper.generateUuid(),
@@ -445,21 +430,10 @@ export class MovementService {
     });
 
     //Find movement
-    const movement: Movement = await this.prisma.movement.findUnique({
-      where: {
-        uuid: movementId,
-      },
-    });
-
-    if (!movement) {
-      throw new CustomException(
-        'Movement_' + MESSAGE.ID_NOT_FOUND,
-        HttpStatus.CONFLICT,
-      );
-    }
+    const findMovement: Movement = await this.findMovement(movementId);
 
     const findStatusMovement: Status = await this.prisma.status.findFirst({
-      where: { id: movement.statusId },
+      where: { id: findMovement.statusId },
     });
 
     if (findStatusMovement.code === STATUS.COMPLETED) {
@@ -473,7 +447,7 @@ export class MovementService {
     const insertNewHistoryValidation: HistoryValidation =
       await this.prisma.historyValidation.create({
         data: {
-          movementId: movement.id,
+          movementId: findMovement.id,
           validatorId: user.id,
           statusId: statusRejected.id,
           uuid: await this.helper.generateUuid(),
@@ -500,5 +474,33 @@ export class MovementService {
       message: `Rejected of movement ${movementId} with success.`,
       statusCode: 200,
     };
+  }
+
+  async findAllHistoryValidationMovement(
+    movementId: string,
+  ): Promise<IHistoryValidation[]> {
+    const findMovement: Movement = await this.findMovement(movementId);
+
+    return this.prisma.historyValidation.findMany({
+      where: { movementId: findMovement.id },
+      select: {
+        uuid: true,
+        createdAt: true,
+        observation: true,
+        validator: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+        status: {
+          select: {
+            uuid: true,
+            designation: true,
+            code: true,
+          },
+        },
+      },
+    });
   }
 }

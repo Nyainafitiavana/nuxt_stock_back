@@ -20,6 +20,7 @@ import { AuthGuard } from '../auth/auth.guards';
 import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { DetailsWithStock } from './details.interface';
 import { AdminGuard } from '../auth/admin.guards';
+import { IHistoryValidation } from './historyValidation.interface';
 
 @Controller('/api/movement')
 export class MovementController {
@@ -154,6 +155,23 @@ export class MovementController {
         );
 
       res.status(HttpStatus.OK).json(validateMovement);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':uuid/history/validation')
+  async findAllHistoryValidationMovement(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+    @Param('uuid') movementId: string,
+  ): Promise<void> {
+    try {
+      const historyValidation: IHistoryValidation[] =
+        await this.movementService.findAllHistoryValidationMovement(movementId);
+
+      res.status(HttpStatus.OK).json(historyValidation);
     } catch (error) {
       next(error);
     }
