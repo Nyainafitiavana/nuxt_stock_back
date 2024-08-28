@@ -518,6 +518,7 @@ export class MovementService {
           },
         },
       },
+      orderBy: [{ createdAt: 'desc' }],
     });
   }
 }
