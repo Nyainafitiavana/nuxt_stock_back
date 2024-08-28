@@ -13,4 +13,5 @@ export const STATUS = {
   COMPLETED: 'CMP',
   OLD: 'OLD',
   REJECTED: 'RJT',
+  VALIDATED: 'VLD',
 };

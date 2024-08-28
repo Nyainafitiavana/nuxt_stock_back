@@ -359,9 +359,9 @@ export class MovementService {
     movementId: string,
     user: User,
   ): Promise<ExecuteResponse> {
-    const statusCompleted: Status = await this.prisma.status.findUnique({
+    const statusValidated: Status = await this.prisma.status.findUnique({
       where: {
-        code: STATUS.COMPLETED,
+        code: STATUS.VALIDATED,
       },
     });
 
@@ -385,7 +385,7 @@ export class MovementService {
         data: {
           movementId: findMovement.id,
           validatorId: user.id,
-          statusId: statusCompleted.id,
+          statusId: statusValidated.id,
           uuid: await this.helper.generateUuid(),
         },
       });
@@ -401,7 +401,7 @@ export class MovementService {
     await this.prisma.movement.update({
       where: { uuid: movementId },
       data: {
-        statusId: statusCompleted.id,
+        statusId: statusValidated.id,
       },
     });
 
