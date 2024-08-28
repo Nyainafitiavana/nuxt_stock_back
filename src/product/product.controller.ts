@@ -143,6 +143,16 @@ export class ProductController {
     try {
       const limit: number = req.query.limit ? Number(req.query.limit) : null;
       const page: number = req.query.page ? Number(req.query.page) : null;
+      const startDate: string = req.query.startDate
+        ? String(req.query.startDate)
+        : null;
+      const endDate: string = req.query.endDate
+        ? String(req.query.endDate)
+        : null;
+      const categoryId: string = req.query.category
+        ? String(req.query.category)
+        : null;
+      const unitId: string = req.query.unit ? String(req.query.unit) : null;
       const keyword: string = req.query.value
         ? (req.query.value as string)
         : '';
@@ -152,6 +162,10 @@ export class ProductController {
           limit,
           page,
           keyword,
+          startDate,
+          endDate,
+          categoryId,
+          unitId,
         );
 
       // Convert BigInt values to strings

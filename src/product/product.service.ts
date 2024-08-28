@@ -223,6 +223,10 @@ export class ProductService {
     limit: number = null,
     page: number = null,
     keyword: string = null,
+    startDate: string = null,
+    endDate: string = null,
+    categoryId: string = null,
+    unitId: string = null,
   ): Promise<{ data: any; count: number }> {
     // Base query without pagination
     let baseQuery = `
@@ -234,20 +238,40 @@ export class ProductService {
         COALESCE(u."uuid", '---') AS unit_id,
         COALESCE(u.designation, '---') AS unit_name,
         COALESCE(
+          SUM(CASE 
+              WHEN m."isSales" = false AND status_movement.code = '${STATUS.VALIDATED}' 
+                   ${startDate ? `AND m."createdAt" >= '${startDate}'` : ''}
+                   ${endDate ? `AND m."createdAt" <= '${endDate}'` : ''} THEN d.quantity 
+              ELSE 0 
+          END)
+        , 0) AS stock_input,
+        COALESCE(
+          SUM(CASE 
+              WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' 
+                   ${startDate ? `AND m."createdAt" >= '${startDate}'` : ''}
+                   ${endDate ? `AND m."createdAt" <= '${endDate}'` : ''} THEN d.quantity 
+              ELSE 0 
+          END)
+        , 0) AS stock_output,
+        COALESCE(
             (
                 SUM(CASE 
-                    WHEN m."isSales" = false AND status_movement.code = '${STATUS.COMPLETED}' THEN d.quantity 
+                    WHEN m."isSales" = false AND status_movement.code = '${STATUS.VALIDATED}' 
+                         ${startDate ? `AND m."createdAt" >= '${startDate}'` : ''}
+                         ${endDate ? `AND m."createdAt" <= '${endDate}'` : ''} THEN d.quantity 
                     ELSE 0 
                 END) - 
                 SUM(CASE 
-                    WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' THEN d.quantity 
+                    WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' 
+                         ${startDate ? `AND m."createdAt" >= '${startDate}'` : ''}
+                         ${endDate ? `AND m."createdAt" <= '${endDate}'` : ''} THEN d.quantity 
                     ELSE 0 
                 END)
-            ), 0) AS remaining_stock,
-        COALESCE(psp."uuid", '') AS product_sales_price_id,
-        COALESCE(psp."unitPrice", 0) AS unit_price,
-        COALESCE(psp."wholesale", 0) AS wholesale_price,
-        COALESCE(psp."purchasePrice", 0) AS purchase_price
+          ), 0) AS remaining_stock,
+        CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."uuid" ELSE '' END AS product_sales_price_id,
+        CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."unitPrice" ELSE 0 END AS unit_price,
+        CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."wholesale" ELSE 0 END AS wholesale_price,
+        CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."purchasePrice" ELSE 0 END AS purchase_price
       FROM "Product" p 
       LEFT JOIN "Status" status_product ON status_product.id = p."statusId" 
       LEFT JOIN "Category" c ON c.id = p."categoryId" 
@@ -258,12 +282,22 @@ export class ProductService {
       LEFT JOIN "ProductSalesPrice" psp ON psp."productId" = p.id 
       LEFT JOIN "Status" status_sales_price ON status_sales_price.id = psp."statusId" 
       WHERE status_product.code = '${STATUS.ACTIVE}'
-        AND status_sales_price.code = '${STATUS.ACTIVE}'
     `;
 
     // Adding the keyword condition
     if (keyword && keyword !== '') {
       baseQuery += ` AND LOWER(p.designation) LIKE '%' || LOWER('${keyword}') || '%'`;
+    }
+    // Adding the category condition
+    if (categoryId) {
+      const findCategory: Category =
+        await this.categoryService.findOne(categoryId);
+      baseQuery += ` AND c.id = ${findCategory.id}`;
+    }
+    // Adding the unit condition
+    if (unitId) {
+      const findUnit: Unit = await this.unitService.findOne(unitId);
+      baseQuery += ` AND u.id = ${findUnit.id}`;
     }
 
     // Grouping and ordering
@@ -275,6 +309,7 @@ export class ProductService {
         c.designation,
         u."uuid",
         u.designation,
+        status_sales_price.code,
         psp."uuid",
         psp."unitPrice",
         psp."wholesale",
@@ -300,12 +335,12 @@ export class ProductService {
         c.designation,
         u."uuid",
         u.designation,
+        status_sales_price.code,
         psp."uuid",
         psp."unitPrice",
         psp."wholesale",
         psp."purchasePrice"
     `;
-
     const data = await this.prisma.$queryRawUnsafe(paginatedQuery);
     const countResult = await this.prisma.$queryRawUnsafe(
       `SELECT COUNT(*) FROM (${countQuery}) AS count_query`,

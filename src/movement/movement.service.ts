@@ -153,6 +153,8 @@ export class MovementService {
     page: number = null,
     isSales: boolean,
     status: string,
+    startDate: string,
+    endDate: string,
   ): Promise<Paginate<Movement[]>> {
     const findStatus: Status = await this.prisma.status.findUnique({
       where: {
@@ -167,11 +169,27 @@ export class MovementService {
       );
     }
 
+    const whereClause: Prisma.MovementWhereInput = {
+      statusId: findStatus.id,
+      isSales: isSales,
+    };
+
+    if (startDate !== '' && endDate !== '') {
+      const startToDate: Date = new Date(startDate);
+      //We need to set hours to 23h 59min 59sc 999ms to be sure so all movement created in the endDate is included
+      const endToDate: Date = new Date(
+        new Date(endDate).setHours(23, 59, 59, 999),
+      );
+      //gte: Greater than or equal to.
+      //lte: Less than or equal to.
+      whereClause.createdAt = {
+        gte: startToDate,
+        lte: endToDate,
+      };
+    }
+
     const query: Prisma.MovementFindManyArgs = {
-      where: {
-        statusId: findStatus.id,
-        isSales: isSales,
-      },
+      where: whereClause,
       select: {
         createdAt: true,
         updatedAt: true,
@@ -189,46 +207,6 @@ export class MovementService {
             uuid: true,
             designation: true,
             code: true,
-          },
-        },
-        details: {
-          select: {
-            uuid: true,
-            isUnitPrice: true,
-            product: {
-              select: {
-                uuid: true,
-                designation: true,
-                description: true,
-                unit: {
-                  select: {
-                    uuid: true,
-                    designation: true,
-                  },
-                },
-                category: {
-                  select: {
-                    uuid: true,
-                    designation: true,
-                  },
-                },
-              },
-            },
-            salesPrice: {
-              select: {
-                uuid: true,
-                unitPrice: true,
-                wholesale: true,
-                purchasePrice: true,
-                status: {
-                  select: {
-                    uuid: true,
-                    designation: true,
-                    code: true,
-                  },
-                },
-              },
-            },
           },
         },
       },

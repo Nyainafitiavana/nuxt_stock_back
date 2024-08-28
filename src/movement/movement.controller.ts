@@ -57,6 +57,12 @@ export class MovementController {
     try {
       const limit: number = req.query.limit ? Number(req.query.limit) : null;
       const page: number = req.query.page ? Number(req.query.page) : null;
+      const startDate: string = req.query.startDate
+        ? String(req.query.startDate)
+        : '';
+      const endDate: string = req.query.endDate
+        ? String(req.query.endDate)
+        : '';
       const isSales: string = req.query.isSales
         ? (req.query.isSales as string)
         : 'false';
@@ -69,6 +75,8 @@ export class MovementController {
         page,
         JSON.parse(isSales),
         status,
+        startDate,
+        endDate,
       );
 
       res.status(HttpStatus.OK).json(movement);
