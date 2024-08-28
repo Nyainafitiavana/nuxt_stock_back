@@ -321,6 +321,14 @@ export class MovementService {
         "Can't update an already rejected movement if you are an admin.",
         HttpStatus.NOT_ACCEPTABLE,
       );
+    } else if (
+      findStatusMovement.code === STATUS.VALIDATED ||
+      findStatusMovement.code === STATUS.COMPLETED
+    ) {
+      throw new CustomException(
+        "Can't update an already validated or completed movement!",
+        HttpStatus.NOT_ACCEPTABLE,
+      );
     }
 
     //Remove all old details before create a new details
@@ -442,9 +450,12 @@ export class MovementService {
       where: { id: findMovement.statusId },
     });
 
-    if (findStatusMovement.code === STATUS.COMPLETED) {
+    if (
+      findStatusMovement.code === STATUS.COMPLETED ||
+      findStatusMovement.code === STATUS.VALIDATED
+    ) {
       throw new CustomException(
-        "Can't reject an already completed movement",
+        "Can't reject an already validated or completed movement",
         HttpStatus.NOT_ACCEPTABLE,
       );
     }
