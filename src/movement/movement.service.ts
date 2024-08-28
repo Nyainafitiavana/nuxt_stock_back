@@ -154,16 +154,22 @@ export class MovementService {
     isSales: boolean,
     status: string,
   ): Promise<Paginate<Movement[]>> {
+    const findStatus: Status = await this.prisma.status.findUnique({
+      where: {
+        code: status,
+      },
+    });
+
+    if (!findStatus) {
+      throw new CustomException(
+        'Code status not found',
+        HttpStatus.NOT_ACCEPTABLE,
+      );
+    }
+
     const query: Prisma.MovementFindManyArgs = {
       where: {
-        status: {
-          code:
-            status === STATUS.OUTSTANDING
-              ? STATUS.OUTSTANDING
-              : status === STATUS.COMPLETED
-                ? STATUS.COMPLETED
-                : STATUS.REJECTED,
-        },
+        statusId: findStatus.id,
         isSales: isSales,
       },
       select: {
