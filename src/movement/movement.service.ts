@@ -249,17 +249,24 @@ export class MovementService {
         COALESCE(psp."uuid", '') AS product_sales_price_id,
         COALESCE(
             (
-                SELECT SUM(CASE 
-                            WHEN m1."isSales" = false THEN d1.quantity 
-                            ELSE -d1.quantity 
-                        END)
+                SELECT
+                    COALESCE(
+                      (
+                         SUM(CASE 
+                            WHEN m1."isSales" = false AND status_movement1.code = ${STATUS.VALIDATED} THEN d1.quantity 
+                            ELSE 0 
+                          END) - 
+                         SUM(CASE 
+                            WHEN m1."isSales" = true AND status_movement1.code = ${STATUS.COMPLETED} THEN d1.quantity 
+                            ELSE 0
+                         END)
+                      )
+                    ,0) AS remaining_stock
                 FROM "Details" d1
                 JOIN "Movement" m1 ON m1.id = d1."movementId"
                 JOIN "Status" status_movement1 ON status_movement1.id = m1."statusId"
-                WHERE d1."productId" = p.id 
-                AND status_movement1.code = 'CMP'
-            ), 0
-        ) AS remaining_stock
+                WHERE d1."productId" = p.id
+            ), 0) AS remaining_stock
     FROM "Details" d
     JOIN "Product" p ON p.id = d."productId"
     LEFT JOIN "Category" c ON c.id = p."categoryId"
