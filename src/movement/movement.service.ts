@@ -31,7 +31,7 @@ export class MovementService {
   ): Promise<Movement> {
     //OUTSTANDING is the default status of new movement
     const findStatusByCode: Status = await this.prisma.status.findUnique({
-      where: { code: STATUS.OUTSTANDING },
+      where: { code: STATUS.IN_PROGRESS },
     });
     //Find User connect
     const connectUser: User = await this.prisma.user.findUnique({
@@ -291,7 +291,7 @@ export class MovementService {
     });
 
     if (
-      findStatusMovement.code === STATUS.OUTSTANDING &&
+      findStatusMovement.code === STATUS.IN_PROGRESS &&
       !userConnect.isAdmin
     ) {
       throw new CustomException(
@@ -328,7 +328,7 @@ export class MovementService {
     //Update status movement to outstanding it's equal rejected after update
     if (findMovement.statusId === statusRejected.id) {
       const statusOutstanding = await this.prisma.status.findUnique({
-        where: { code: STATUS.OUTSTANDING },
+        where: { code: STATUS.IN_PROGRESS },
       });
 
       await this.prisma.movement.update({

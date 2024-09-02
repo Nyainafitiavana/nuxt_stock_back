@@ -9,7 +9,7 @@ export const MESSAGE = {
 export const STATUS = {
   ACTIVE: 'ACT',
   DELETED: 'DLT',
-  OUTSTANDING: 'OSD',
+  IN_PROGRESS: 'INP',
   COMPLETED: 'CMP',
   OLD: 'OLD',
   REJECTED: 'RJT',

@@ -10,7 +10,7 @@ INSERT INTO public."Status"
 VALUES(3, 'e0e78201-da43-40e1-960d-7aea421bd473', 'Completed', 'CMP');
 INSERT INTO public."Status"
 (id, "uuid", designation, code)
-VALUES(4, '1c2c0990-1652-413a-a574-b0c0df184bac', 'Outstanding', 'OSD');
+VALUES(4, '1c2c0990-1652-413a-a574-b0c0df184bac', 'In Progress', 'INP');
 INSERT INTO public."Status"
 (id, "uuid", designation, code)
 VALUES(5, '75a2e68c-d3d1-4d0f-90ab-222a5042c0d1', 'Old', 'OLD');
