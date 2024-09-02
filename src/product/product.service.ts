@@ -228,72 +228,84 @@ export class ProductService {
     categoryId: string = null,
     unitId: string = null,
   ): Promise<{ data: any; count: number }> {
+    let startToDate: string | null = null;
+    let endToDate: string | null = null;
+
+    if (startDate && endDate) {
+      startToDate = new Date(startDate).toISOString(); // Format to ISO string
+      const dateObject = new Date(endDate);
+      dateObject.setHours(23, 59, 59, 999);
+      endToDate = dateObject.toISOString(); // Format to ISO string
+    }
+
     // Base query without pagination
     let baseQuery = `
-      SELECT 
-        p."uuid" AS product_id,
-        p.designation AS product_name,
-        COALESCE(c."uuid", '---') AS category_id,
-        COALESCE(c.designation, '---') AS category_name,
-        COALESCE(u."uuid", '---') AS unit_id,
-        COALESCE(u.designation, '---') AS unit_name,
-        COALESCE(
-          SUM(CASE 
-              WHEN m."isSales" = false AND status_movement.code = '${STATUS.VALIDATED}' 
-                   ${startDate ? `AND m."createdAt" >= '${startDate}'` : ''}
-                   ${endDate ? `AND m."createdAt" <= '${endDate}'` : ''} THEN d.quantity 
-              ELSE 0 
-          END)
-        , 0) AS stock_input,
-        COALESCE(
-          SUM(CASE 
-              WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' 
-                   ${startDate ? `AND m."createdAt" >= '${startDate}'` : ''}
-                   ${endDate ? `AND m."createdAt" <= '${endDate}'` : ''} THEN d.quantity 
-              ELSE 0 
-          END)
-        , 0) AS stock_output,
-        COALESCE(
-            (
-                SUM(CASE 
-                    WHEN m."isSales" = false AND status_movement.code = '${STATUS.VALIDATED}' 
-                         ${startDate ? `AND m."createdAt" >= '${startDate}'` : ''}
-                         ${endDate ? `AND m."createdAt" <= '${endDate}'` : ''} THEN d.quantity 
-                    ELSE 0 
-                END) - 
-                SUM(CASE 
-                    WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' 
-                         ${startDate ? `AND m."createdAt" >= '${startDate}'` : ''}
-                         ${endDate ? `AND m."createdAt" <= '${endDate}'` : ''} THEN d.quantity 
-                    ELSE 0 
-                END)
-          ), 0) AS remaining_stock,
-        CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."uuid" ELSE '' END AS product_sales_price_id,
-        CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."unitPrice" ELSE 0 END AS unit_price,
-        CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."wholesale" ELSE 0 END AS wholesale_price,
-        CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."purchasePrice" ELSE 0 END AS purchase_price
-      FROM "Product" p 
-      LEFT JOIN "Status" status_product ON status_product.id = p."statusId" 
-      LEFT JOIN "Category" c ON c.id = p."categoryId" 
-      LEFT JOIN "Unit" u ON u.id = p."unitId" 
-      LEFT JOIN "Details" d ON d."productId" = p.id 
-      LEFT JOIN "Movement" m ON m.id = d."movementId" 
-      LEFT JOIN "Status" status_movement ON status_movement.id = m."statusId" 
-      LEFT JOIN "ProductSalesPrice" psp ON psp."productId" = p.id 
-      LEFT JOIN "Status" status_sales_price ON status_sales_price.id = psp."statusId" 
-      WHERE status_product.code = '${STATUS.ACTIVE}'
-    `;
+    SELECT 
+      p."uuid" AS product_id,
+      p.designation AS product_name,
+      COALESCE(c."uuid", '---') AS category_id,
+      COALESCE(c.designation, '---') AS category_name,
+      COALESCE(u."uuid", '---') AS unit_id,
+      COALESCE(u.designation, '---') AS unit_name,
+      COALESCE(
+        SUM(CASE 
+            WHEN m."isSales" = false AND status_movement.code = '${STATUS.VALIDATED}' 
+                 ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
+                 ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
+            ELSE 0 
+        END)
+      , 0) AS stock_input,
+      COALESCE(
+        SUM(CASE 
+            WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' 
+                 ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
+                 ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
+            ELSE 0 
+        END)
+      , 0) AS stock_output,
+      COALESCE(
+          (
+              SUM(CASE 
+                  WHEN m."isSales" = false AND status_movement.code = '${STATUS.VALIDATED}' 
+                       ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
+                       ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
+                  ELSE 0 
+              END) - 
+              SUM(CASE 
+                  WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' 
+                       ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
+                       ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
+                  ELSE 0 
+              END)
+        ), 0) AS remaining_stock,
+      CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."uuid" ELSE '' END AS product_sales_price_id,
+      CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."unitPrice" ELSE 0 END AS unit_price,
+      CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."wholesale" ELSE 0 END AS wholesale_price,
+      CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."purchasePrice" ELSE 0 END AS purchase_price
+    FROM "Product" p 
+    LEFT JOIN "Status" status_product ON status_product.id = p."statusId" 
+    LEFT JOIN "Category" c ON c.id = p."categoryId" 
+    LEFT JOIN "Unit" u ON u.id = p."unitId" 
+    LEFT JOIN "Details" d ON d."productId" = p.id 
+    LEFT JOIN "Movement" m ON m.id = d."movementId" 
+    LEFT JOIN "Status" status_movement ON status_movement.id = m."statusId" 
+    LEFT JOIN "ProductSalesPrice" psp ON psp."productId" = p.id 
+    LEFT JOIN "Status" status_sales_price ON status_sales_price.id = psp."statusId" 
+    WHERE status_product.code = '${STATUS.ACTIVE}'
+  `;
 
     // Adding the keyword condition
-    if (keyword && keyword !== '') {
-      baseQuery += ` AND LOWER(p.designation) LIKE '%' || LOWER('${keyword}') || '%'`;
+    if (keyword && keyword.trim() !== '') {
+      baseQuery += ` AND LOWER(p.designation) LIKE '%' || LOWER(${this.prisma.$queryRaw`'${keyword}'`}) || '%'`;
     }
+
     // Adding the category condition
     if (categoryId) {
       const findCategory: Category =
         await this.categoryService.findOne(categoryId);
       baseQuery += ` AND c.id = ${findCategory.id}`;
     }
+
     // Adding the unit condition
     if (unitId) {
       const findUnit: Unit = await this.unitService.findOne(unitId);
@@ -302,20 +314,20 @@ export class ProductService {
 
     // Grouping and ordering
     const groupByClause = `
-      GROUP BY 
-        p."uuid",
-        p.designation,
-        c."uuid",
-        c.designation,
-        u."uuid",
-        u.designation,
-        status_sales_price.code,
-        psp."uuid",
-        psp."unitPrice",
-        psp."wholesale",
-        psp."purchasePrice"
-      ORDER BY p.designation ASC
-    `;
+    GROUP BY 
+      p."uuid",
+      p.designation,
+      c."uuid",
+      c.designation,
+      u."uuid",
+      u.designation,
+      status_sales_price.code,
+      psp."uuid",
+      psp."unitPrice",
+      psp."wholesale",
+      psp."purchasePrice"
+    ORDER BY p.designation ASC
+  `;
 
     // Pagination logic
     let paginatedQuery = baseQuery + groupByClause;
@@ -328,25 +340,31 @@ export class ProductService {
     const countQuery =
       baseQuery +
       `
-      GROUP BY 
-        p."uuid",
-        p.designation,
-        c."uuid",
-        c.designation,
-        u."uuid",
-        u.designation,
-        status_sales_price.code,
-        psp."uuid",
-        psp."unitPrice",
-        psp."wholesale",
-        psp."purchasePrice"
-    `;
-    const data = await this.prisma.$queryRawUnsafe(paginatedQuery);
-    const countResult = await this.prisma.$queryRawUnsafe(
-      `SELECT COUNT(*) FROM (${countQuery}) AS count_query`,
-    );
-    const count = Number(countResult[0].count);
+    GROUP BY 
+      p."uuid",
+      p.designation,
+      c."uuid",
+      c.designation,
+      u."uuid",
+      u.designation,
+      status_sales_price.code,
+      psp."uuid",
+      psp."unitPrice",
+      psp."wholesale",
+      psp."purchasePrice"
+  `;
 
-    return { data, count };
+    try {
+      const data = await this.prisma.$queryRawUnsafe(paginatedQuery);
+      const countResult = await this.prisma.$queryRawUnsafe(
+        `SELECT COUNT(*) FROM (${countQuery}) AS count_query`,
+      );
+      const count = Number(countResult[0].count);
+
+      return { data, count };
+    } catch (error) {
+      console.error('Error executing query:', error);
+      throw new Error('Database query failed');
+    }
   }
 }
