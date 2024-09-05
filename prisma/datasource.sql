@@ -29,3 +29,8 @@ VALUES(1, 'fa3784d6-8f72-4ab1-a476-0d954bf7c3ea', 'FITAHIANTSOA', 'Ny Aina Fitia
 ALTER SEQUENCE public."User_id_seq"
 	RESTART 2;
 
+---insert default settings----
+INSERT INTO public."Settings"
+(id, "uuid", "companyName", "currencyType", "companyEmail", "companyPhoneNumber", "companyAddress", "createdAt", "updatedAt")
+VALUES(1, '0f3d156b-75dd-41be-b457-10247494c044', 'default company name', 'USD', 'defaultcompany@gmail.com', '0000000000', 'default address', '2024-09-05 00:00:00.000', '2024-09-05 00:00:00.000');
+

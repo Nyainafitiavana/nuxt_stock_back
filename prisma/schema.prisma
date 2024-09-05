@@ -13,29 +13,29 @@ model Status {
   designation       String
   code              String              @unique
   category          Category[]
+  historyValidation HistoryValidation[]
   mouvement         Movement[]
   product           Product[]
   productSalesPrice ProductSalesPrice[]
   unit              Unit[]
   user              User[]
-  historyValidation HistoryValidation[]
 }
 
 model User {
-  id                  Int        @id @default(autoincrement())
-  uuid                String     @unique
+  id                  Int                 @id @default(autoincrement())
+  uuid                String              @unique
   firstName           String
   lastName            String?
   isAdmin             Boolean
-  email               String     @unique
+  email               String              @unique
   phone               String?
   password            String
   statusId            Int
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
-  editedMouvements    Movement[] @relation("Editor")
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
   validatedMouvements HistoryValidation[] @relation("Validator")
-  status              Status     @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  editedMouvements    Movement[]          @relation("Editor")
+  status              Status              @relation(fields: [statusId], references: [id], onDelete: Cascade)
 }
 
 model Product {
@@ -49,9 +49,9 @@ model Product {
   updatedAt         DateTime            @updatedAt
   description       String?
   details           Details[]
-  category          Category?            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  unit              Unit?            @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  category          Category?           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   status            Status              @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  unit              Unit?               @relation(fields: [unitId], references: [id], onDelete: Cascade)
   productSalesPrice ProductSalesPrice[]
 }
 
@@ -62,22 +62,22 @@ model Unit {
   statusId    Int
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  status      Status    @relation(fields: [statusId], references: [id], onDelete: Cascade)
   Product     Product[]
+  status      Status    @relation(fields: [statusId], references: [id], onDelete: Cascade)
 }
 
 model ProductSalesPrice {
-  id                  Int      @id @default(autoincrement())
-  productId           Int
-  unitPrice           Float
-  wholesale           Float?
-  purchasePrice       Float?
-  createdAt           DateTime @default(now())
-  statusId            Int
-  uuid                String   @unique
-  product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  status              Status   @relation(fields: [statusId], references: [id], onDelete: Cascade)
-  details             Details[]
+  id            Int       @id @default(autoincrement())
+  productId     Int
+  unitPrice     Float
+  wholesale     Float?
+  purchasePrice Float?
+  createdAt     DateTime  @default(now())
+  statusId      Int
+  uuid          String    @unique
+  details       Details[]
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  status        Status    @relation(fields: [statusId], references: [id], onDelete: Cascade)
 }
 
 model Category {
@@ -92,41 +92,53 @@ model Category {
 }
 
 model Movement {
-  id                Int       @id @default(autoincrement())
-  uuid              String    @unique
+  id                Int                 @id @default(autoincrement())
+  uuid              String              @unique
   editorId          Int
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
   statusId          Int
   isSales           Boolean
   details           Details[]
-  editor            User      @relation("Editor", fields: [editorId], references: [id], onDelete: Cascade)
-  status            Status    @relation(fields: [statusId], references: [id], onDelete: Cascade)
   historyValidation HistoryValidation[]
+  editor            User                @relation("Editor", fields: [editorId], references: [id], onDelete: Cascade)
+  status            Status              @relation(fields: [statusId], references: [id], onDelete: Cascade)
 }
 
 model HistoryValidation {
-  id          Int         @id @default(autoincrement())
-  uuid        String      @unique
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique
   movementId  Int
   validatorId Int
   observation String?
   statusId    Int
-  createdAt   DateTime  @default(now())
-  movement    Movement    @relation(fields: [movementId], references: [id], onDelete: Cascade)
-  status      Status      @relation(fields: [statusId], references: [id], onDelete: Cascade)
-  validator   User        @relation("Validator", fields: [validatorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  movement    Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  status      Status   @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  validator   User     @relation("Validator", fields: [validatorId], references: [id], onDelete: Cascade)
 }
 
 model Details {
-  id                      Int      @id @default(autoincrement())
-  uuid                    String   @unique
-  movementId              Int
-  productId               Int
-  salesPriceId            Int
-  isUnitPrice             Boolean
-  quantity                Float
-  movement                Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
-  product                 Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  salesPrice              ProductSalesPrice  @relation(fields: [salesPriceId], references: [id], onDelete: Cascade)
+  id           Int               @id @default(autoincrement())
+  uuid         String            @unique
+  movementId   Int
+  productId    Int
+  salesPriceId Int
+  isUnitPrice  Boolean
+  quantity     Float
+  movement     Movement          @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  product      Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  salesPrice   ProductSalesPrice @relation(fields: [salesPriceId], references: [id], onDelete: Cascade)
+}
+
+model Settings {
+  id                 Int      @id @default(autoincrement())
+  uuid               String   @unique
+  companyName        String
+  currencyType       String
+  companyPhoneNumber String
+  companyAddress     String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  companyEmail       String   @unique
 }
