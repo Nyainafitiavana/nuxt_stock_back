@@ -114,7 +114,7 @@ export class ExpenseTypeService {
 
     await this.prisma.expenseType.update({
       where: {
-        uuid: findExpenseType.uuid,
+        id: findExpenseType.id,
       },
       data: {
         ...updateExpensesTypeDto,
@@ -132,7 +132,7 @@ export class ExpenseTypeService {
 
     await this.prisma.expenseType.update({
       where: {
-        uuid: findExpenseType.uuid,
+        id: findExpenseType.id,
       },
       data: {
         statusId: findStatusByCode.id,

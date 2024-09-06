@@ -1,9 +1,12 @@
-import { IsString } from 'class-validator';
+import { IsNumber, IsString } from 'class-validator';
 
 export class CreateExpenseDto {
   @IsString()
-  description?: string;
+  public description?: string;
+
+  @IsNumber()
+  public amount: number;
 
   @IsString()
-  idExpensesType;
+  public idExpenseType: string;
 }

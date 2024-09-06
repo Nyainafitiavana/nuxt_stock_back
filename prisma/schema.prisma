@@ -159,12 +159,12 @@ model ExpenseType {
 model Expenses {
   id             Int      @id @default(autoincrement())
   uuid           String   @unique
-  expenseTypeId Int
+  expenseTypeId  Int
   description    String?
   amount         Float
   statusId       Int
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-  expenseType       ExpenseType    @relation(fields: [expenseTypeId], references: [id], onDelete: Cascade)
+  expenseType    ExpenseType    @relation(fields: [expenseTypeId], references: [id], onDelete: Cascade)
   status         Status    @relation(fields: [statusId], references: [id], onDelete: Cascade)
 }

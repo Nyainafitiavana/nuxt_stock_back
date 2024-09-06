@@ -11,6 +11,7 @@ import { UnitModule } from '../unit/unit.module';
 import { MovementModule } from '../movement/movement.module';
 import { SettingsModule } from '../settings/settings.module';
 import { ExpenseTypeModule } from '../expense-type/expense-type.module';
+import { ExpensesModule } from '../expenses/expenses.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ExpenseTypeModule } from '../expense-type/expense-type.module';
     MovementModule,
     SettingsModule,
     ExpenseTypeModule,
+    ExpensesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
