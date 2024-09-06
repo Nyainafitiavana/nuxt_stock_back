@@ -1,4 +1,12 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateProductSalesPriceDto } from './create-product-sales-price.dto';
+import { IsNumber } from 'class-validator';
 
-export class UpdateProductSalesPriceDto extends PartialType(CreateProductSalesPriceDto) {}
+export class UpdateProductSalesPriceDto {
+  @IsNumber()
+  public unitPrice: number;
+
+  @IsNumber()
+  public wholesale: number;
+
+  @IsNumber()
+  public purchasePrice: number;
+}

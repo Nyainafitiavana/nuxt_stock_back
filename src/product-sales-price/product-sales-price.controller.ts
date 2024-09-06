@@ -28,14 +28,35 @@ export class ProductSalesPriceController {
   @Post()
   async create(
     @Res() res: Response,
-    @Next() next: NextFunction,
     @Body() createProductSalesPriceDto: CreateProductSalesPriceDto,
+    @Next() next: NextFunction,
   ): Promise<void> {
     try {
       const saleProduct: ProductSalesPrice =
         await this.productSalesPriceService.create(createProductSalesPriceDto);
 
       res.status(HttpStatus.OK).json(saleProduct);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Patch('/:uuid')
+  async updateProductSalesPrice(
+    @Param('uuid') uuid: string,
+    @Res() res: Response,
+    @Body() createProductSalesPriceDto: CreateProductSalesPriceDto,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const update: ExecuteResponse =
+        await this.productSalesPriceService.update(
+          createProductSalesPriceDto,
+          uuid,
+        );
+
+      res.status(HttpStatus.OK).json(update);
     } catch (error) {
       next(error);
     }

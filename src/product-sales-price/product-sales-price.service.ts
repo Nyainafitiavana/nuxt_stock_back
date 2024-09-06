@@ -6,6 +6,8 @@ import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import Helper from '../../utils/helper';
 import { ProductService } from '../product/product.service';
+import { UpdateProductSalesPriceDto } from './dto/update-product-sales-price.dto';
+import { CustomException } from '../../utils/ExeptionCustom';
 
 @Injectable()
 export class ProductSalesPriceService {
@@ -56,6 +58,41 @@ export class ProductSalesPriceService {
     delete createProductSalesPrice.statusId;
 
     return createProductSalesPrice;
+  }
+
+  async update(
+    updateProductSalesPriceDto: UpdateProductSalesPriceDto,
+    salesPriceId: string,
+  ): Promise<ExecuteResponse> {
+    const findSalesPrice: ProductSalesPrice =
+      await this.prisma.productSalesPrice.findUnique({
+        where: { uuid: salesPriceId },
+      });
+
+    if (!findSalesPrice) {
+      throw new CustomException(
+        'Sales price_' + MESSAGE.ID_NOT_FOUND,
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    const findStatus: Status = await this.prisma.status.findUnique({
+      where: { id: findSalesPrice.statusId },
+    });
+
+    if (findStatus.code === STATUS.OLD) {
+      throw new CustomException(
+        "Can't update the inactive product sales price",
+        HttpStatus.NOT_ACCEPTABLE,
+      );
+    }
+
+    await this.prisma.productSalesPrice.update({
+      where: { id: findSalesPrice.id },
+      data: updateProductSalesPriceDto,
+    });
+
+    return { message: MESSAGE.OK, statusCode: HttpStatus.OK };
   }
 
   async findAllSalesPriceByProduct(
