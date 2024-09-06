@@ -3,35 +3,36 @@ import { CreateExpensesTypeDto } from './dto/create-expenses-type.dto';
 import { UpdateExpensesTypeDto } from './dto/update-expenses-type.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import Helper from '../../utils/helper';
-import { ExpensesType, Prisma, Status } from '@prisma/client';
+import { ExpenseType, Prisma, Status } from '@prisma/client';
 import { MESSAGE, STATUS } from '../../utils/constant';
 import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { CustomException } from '../../utils/ExeptionCustom';
 
 @Injectable()
-export class ExpensesTypeService {
+export class ExpenseTypeService {
   constructor(
     private prisma: PrismaService,
     private helper: Helper,
   ) {}
   async create(
     createExpensesTypeDto: CreateExpensesTypeDto,
-  ): Promise<ExpensesType> {
+  ): Promise<ExpenseType> {
     const findStatusByCode: Status = await this.prisma.status.findUnique({
       where: { code: STATUS.ACTIVE },
     });
 
-    const createExpensesType: ExpensesType =
-      await this.prisma.expensesType.create({
+    const createExpenseType: ExpenseType = await this.prisma.expenseType.create(
+      {
         data: {
           ...createExpensesTypeDto,
           statusId: findStatusByCode.id,
           uuid: await this.helper.generateUuid(),
         },
-      });
+      },
+    );
 
-    delete createExpensesType.id;
-    return createExpensesType;
+    delete createExpenseType.id;
+    return createExpenseType;
   }
 
   async findAll(
@@ -39,8 +40,8 @@ export class ExpensesTypeService {
     page: number = null,
     keyword: string,
     status: string,
-  ): Promise<Paginate<ExpensesType[]>> {
-    const query: Prisma.ExpensesTypeFindManyArgs = {
+  ): Promise<Paginate<ExpenseType[]>> {
+    const query: Prisma.ExpenseTypeFindManyArgs = {
       where: {
         designation: {
           contains: keyword,
@@ -71,38 +72,37 @@ export class ExpensesTypeService {
     }
 
     const [data, count] = await this.prisma.$transaction([
-      this.prisma.expensesType.findMany(query),
-      this.prisma.expensesType.count({ where: query.where }),
+      this.prisma.expenseType.findMany(query),
+      this.prisma.expenseType.count({ where: query.where }),
     ]);
 
     return { data: data, totalRows: count, page: page };
   }
 
-  async findOne(uuid: string): Promise<ExpensesType> {
-    const expensesType: ExpensesType =
-      await this.prisma.expensesType.findUnique({
-        where: {
-          uuid: uuid,
-        },
-      });
+  async findOne(uuid: string): Promise<ExpenseType> {
+    const expenseType: ExpenseType = await this.prisma.expenseType.findUnique({
+      where: {
+        uuid: uuid,
+      },
+    });
 
-    if (!expensesType) {
+    if (!expenseType) {
       throw new CustomException(
-        'ExpensesType_' + MESSAGE.ID_NOT_FOUND,
+        'ExpenseType_' + MESSAGE.ID_NOT_FOUND,
         HttpStatus.CONFLICT,
       );
     }
 
-    return expensesType;
+    return expenseType;
   }
 
   async update(
     uuid: string,
     updateExpensesTypeDto: UpdateExpensesTypeDto,
   ): Promise<ExecuteResponse> {
-    const findExpensesType: ExpensesType = await this.findOne(uuid);
+    const findExpenseType: ExpenseType = await this.findOne(uuid);
     const findStatusExpensesType: Status = await this.prisma.status.findUnique({
-      where: { id: findExpensesType.statusId },
+      where: { id: findExpenseType.statusId },
     });
 
     if (findStatusExpensesType.code === STATUS.DELETED) {
@@ -112,9 +112,9 @@ export class ExpensesTypeService {
       );
     }
 
-    await this.prisma.expensesType.update({
+    await this.prisma.expenseType.update({
       where: {
-        uuid: findExpensesType.uuid,
+        uuid: findExpenseType.uuid,
       },
       data: {
         ...updateExpensesTypeDto,
@@ -125,14 +125,14 @@ export class ExpensesTypeService {
   }
 
   async remove(uuid: string): Promise<ExecuteResponse> {
-    const findExpensesType: ExpensesType = await this.findOne(uuid);
+    const findExpenseType: ExpenseType = await this.findOne(uuid);
     const findStatusByCode: Status = await this.prisma.status.findUnique({
       where: { code: STATUS.DELETED },
     });
 
-    await this.prisma.expensesType.update({
+    await this.prisma.expenseType.update({
       where: {
-        uuid: findExpensesType.uuid,
+        uuid: findExpenseType.uuid,
       },
       data: {
         statusId: findStatusByCode.id,

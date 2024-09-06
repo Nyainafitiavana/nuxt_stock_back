@@ -10,7 +10,7 @@ import { ProductSalesPriceModule } from '../product-sales-price/product-sales-pr
 import { UnitModule } from '../unit/unit.module';
 import { MovementModule } from '../movement/movement.module';
 import { SettingsModule } from '../settings/settings.module';
-import { ExpensesTypeModule } from '../expenses-type/expenses-type.module';
+import { ExpenseTypeModule } from '../expense-type/expense-type.module';
 
 @Module({
   imports: [
@@ -23,7 +23,7 @@ import { ExpensesTypeModule } from '../expenses-type/expenses-type.module';
     ProductSalesPriceModule,
     MovementModule,
     SettingsModule,
-    ExpensesTypeModule,
+    ExpenseTypeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

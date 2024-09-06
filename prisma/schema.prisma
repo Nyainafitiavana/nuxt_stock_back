@@ -19,7 +19,7 @@ model Status {
   productSalesPrice ProductSalesPrice[]
   unit              Unit[]
   user              User[]
-  expensesType      ExpensesType[]
+  expenseType       ExpenseType[]
   expenses          Expenses[]
 }
 
@@ -145,7 +145,7 @@ model Settings {
   companyEmail       String   @unique
 }
 
-model ExpensesType {
+model ExpenseType {
   id          Int      @id @default(autoincrement())
   uuid        String   @unique
   designation String
@@ -159,12 +159,12 @@ model ExpensesType {
 model Expenses {
   id             Int      @id @default(autoincrement())
   uuid           String   @unique
-  expensesTypeId Int
+  expenseTypeId Int
   description    String?
   amount         Float
   statusId       Int
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-  expenses       ExpensesType    @relation(fields: [expensesTypeId], references: [id], onDelete: Cascade)
+  expenseType       ExpenseType    @relation(fields: [expenseTypeId], references: [id], onDelete: Cascade)
   status         Status    @relation(fields: [statusId], references: [id], onDelete: Cascade)
 }

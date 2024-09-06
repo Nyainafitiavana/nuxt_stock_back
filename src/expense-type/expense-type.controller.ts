@@ -12,17 +12,17 @@ import {
   HttpStatus,
   Req,
 } from '@nestjs/common';
-import { ExpensesTypeService } from './expenses-type.service';
+import { ExpenseTypeService } from './expense-type.service';
 import { CreateExpensesTypeDto } from './dto/create-expenses-type.dto';
 import { UpdateExpensesTypeDto } from './dto/update-expenses-type.dto';
 import { AdminGuard } from '../auth/admin.guards';
 import { NextFunction, Request, Response } from 'express';
-import { ExpensesType } from '@prisma/client';
+import { ExpenseType } from '@prisma/client';
 import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 
-@Controller('/api/expenses-type')
-export class ExpensesTypeController {
-  constructor(private readonly expensesTypeService: ExpensesTypeService) {}
+@Controller('/api/expense-type')
+export class ExpenseTypeController {
+  constructor(private readonly expensesTypeService: ExpenseTypeService) {}
 
   @UseGuards(AdminGuard)
   @Post()
@@ -32,7 +32,7 @@ export class ExpensesTypeController {
     @Next() next: NextFunction,
   ): Promise<void> {
     try {
-      const expensiveType: ExpensesType = await this.expensesTypeService.create(
+      const expensiveType: ExpenseType = await this.expensesTypeService.create(
         createExpensesTypeDto,
       );
 
@@ -59,7 +59,7 @@ export class ExpensesTypeController {
         ? (req.query.status as string)
         : '';
 
-      const expensesType: Paginate<ExpensesType[]> =
+      const expensesType: Paginate<ExpenseType[]> =
         await this.expensesTypeService.findAll(limit, page, keyword, status);
 
       res.status(HttpStatus.OK).json(expensesType);
@@ -76,7 +76,7 @@ export class ExpensesTypeController {
     @Next() next: NextFunction,
   ): Promise<void> {
     try {
-      const expensesType: ExpensesType =
+      const expensesType: ExpenseType =
         await this.expensesTypeService.findOne(uuid);
 
       res.status(HttpStatus.OK).json(expensesType);
