@@ -31,6 +31,6 @@ ALTER SEQUENCE public."User_id_seq"
 
 ---insert default settings----
 INSERT INTO public."Settings"
-(id, "uuid", "companyName", "currencyType", "companyEmail", "companyPhoneNumber", "companyAddress", "createdAt", "updatedAt")
-VALUES(1, '0f3d156b-75dd-41be-b457-10247494c044', 'default company name', 'USD', 'defaultcompany@gmail.com', '0000000000', 'default address', '2024-09-05 00:00:00.000', '2024-09-05 00:00:00.000');
+(id, "uuid", "companyName", "currencyType", "companyEmail", "companyPhoneNumber", "companyAddress", "createdAt", "updatedAt", "initialCash")
+VALUES(1, '0f3d156b-75dd-41be-b457-10247494c044', 'default company name', 'USD', 'defaultcompany@gmail.com', '0000000000', 'default address', '2024-09-05 00:00:00.000', '2024-09-05 00:00:00.000', 0);
 
