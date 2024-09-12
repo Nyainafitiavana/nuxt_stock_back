@@ -240,69 +240,69 @@ export class ProductService {
 
     // Base query without pagination
     let baseQuery = `
-    SELECT
-      p."uuid" AS product_id,
-      p.designation AS product_name,
-      COALESCE(c."uuid", '---') AS category_id,
-      COALESCE(c.designation, '---') AS category_name,
-      COALESCE(u."uuid", '---') AS unit_id,
-      COALESCE(u.designation, '---') AS unit_name,
-      COALESCE(
-        SUM(CASE 
-            WHEN m."isSales" = false AND status_movement.code = '${STATUS.VALIDATED}' 
-                 ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
-                 ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
-            ELSE 0 
-        END)
-      , 0) AS stock_input,
-      COALESCE(
-        SUM(CASE 
-            WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' 
-                 ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
-                 ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
-            ELSE 0 
-        END)
-      , 0) AS stock_output,
-      COALESCE(
-          (
+          SELECT
+            p."uuid" AS product_id,
+            p.designation AS product_name,
+            COALESCE(c."uuid", '---') AS category_id,
+            COALESCE(c.designation, '---') AS category_name,
+            COALESCE(u."uuid", '---') AS unit_id,
+            COALESCE(u.designation, '---') AS unit_name,
+            COALESCE(
               SUM(CASE 
                   WHEN m."isSales" = false AND status_movement.code = '${STATUS.VALIDATED}' 
                        ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
                        ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
                   ELSE 0 
-              END) - 
+              END)
+            , 0) AS stock_input,
+            COALESCE(
               SUM(CASE 
                   WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' 
                        ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
                        ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
                   ELSE 0 
               END)
-        ), 0) AS remaining_stock,
-      COALESCE(psp."uuid", '') AS product_sales_price_id,
-      COALESCE(psp."unitPrice", 0) AS unit_price,
-      COALESCE(psp."wholesale", 0) AS wholesale_price,
-      COALESCE(psp."purchasePrice", 0) AS purchase_price
-FROM "Product" p 
-LEFT JOIN "Status" status_product ON status_product.id = p."statusId" 
-LEFT JOIN "Category" c ON c.id = p."categoryId" 
-LEFT JOIN "Unit" u ON u.id = p."unitId" 
-LEFT JOIN "Details" d ON d."productId" = p.id 
-LEFT JOIN "Movement" m ON m.id = d."movementId" 
-LEFT JOIN "Status" status_movement ON status_movement.id = m."statusId" 
-LEFT JOIN (
-    SELECT DISTINCT ON (psp_inner."productId") 
-        psp_inner."productId",
-        psp_inner."uuid",
-        psp_inner."unitPrice",
-        psp_inner."wholesale",
-        psp_inner."purchasePrice"
-    FROM "ProductSalesPrice" psp_inner
-    LEFT JOIN "Status" status_sales_price_inner ON status_sales_price_inner.id = psp_inner."statusId"
-    WHERE status_sales_price_inner.code = '${STATUS.ACTIVE}'
-    ORDER BY psp_inner."productId", psp_inner."createdAt" DESC
-) psp ON psp."productId" = p.id 
-WHERE status_product.code = '${STATUS.ACTIVE}'
-  `;
+            , 0) AS stock_output,
+            COALESCE(
+                (
+                    SUM(CASE 
+                        WHEN m."isSales" = false AND status_movement.code = '${STATUS.VALIDATED}' 
+                             ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
+                             ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
+                        ELSE 0 
+                    END) - 
+                    SUM(CASE 
+                        WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' 
+                             ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
+                             ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
+                        ELSE 0 
+                    END)
+              ), 0) AS remaining_stock,
+            COALESCE(psp."uuid", '') AS product_sales_price_id,
+            COALESCE(psp."unitPrice", 0) AS unit_price,
+            COALESCE(psp."wholesale", 0) AS wholesale_price,
+            COALESCE(psp."purchasePrice", 0) AS purchase_price
+      FROM "Product" p 
+      LEFT JOIN "Status" status_product ON status_product.id = p."statusId" 
+      LEFT JOIN "Category" c ON c.id = p."categoryId" 
+      LEFT JOIN "Unit" u ON u.id = p."unitId" 
+      LEFT JOIN "Details" d ON d."productId" = p.id 
+      LEFT JOIN "Movement" m ON m.id = d."movementId" 
+      LEFT JOIN "Status" status_movement ON status_movement.id = m."statusId" 
+      LEFT JOIN (
+          SELECT DISTINCT ON (psp_inner."productId") 
+              psp_inner."productId",
+              psp_inner."uuid",
+              psp_inner."unitPrice",
+              psp_inner."wholesale",
+              psp_inner."purchasePrice"
+          FROM "ProductSalesPrice" psp_inner
+          LEFT JOIN "Status" status_sales_price_inner ON status_sales_price_inner.id = psp_inner."statusId"
+          WHERE status_sales_price_inner.code = '${STATUS.ACTIVE}'
+          ORDER BY psp_inner."productId", psp_inner."createdAt" DESC
+      ) psp ON psp."productId" = p.id 
+      WHERE status_product.code = '${STATUS.ACTIVE}'
+    `;
 
     // Adding the keyword condition
     if (keyword && keyword.trim() !== '') {
