@@ -240,7 +240,7 @@ export class ProductService {
 
     // Base query without pagination
     let baseQuery = `
-    SELECT 
+    SELECT
       p."uuid" AS product_id,
       p.designation AS product_name,
       COALESCE(c."uuid", '---') AS category_id,
@@ -278,25 +278,35 @@ export class ProductService {
                   ELSE 0 
               END)
         ), 0) AS remaining_stock,
-      CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."uuid" ELSE '' END AS product_sales_price_id,
-      CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."unitPrice" ELSE 0 END AS unit_price,
-      CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."wholesale" ELSE 0 END AS wholesale_price,
-      CASE WHEN status_sales_price.code = '${STATUS.ACTIVE}' THEN psp."purchasePrice" ELSE 0 END AS purchase_price
-    FROM "Product" p 
-    LEFT JOIN "Status" status_product ON status_product.id = p."statusId" 
-    LEFT JOIN "Category" c ON c.id = p."categoryId" 
-    LEFT JOIN "Unit" u ON u.id = p."unitId" 
-    LEFT JOIN "Details" d ON d."productId" = p.id 
-    LEFT JOIN "Movement" m ON m.id = d."movementId" 
-    LEFT JOIN "Status" status_movement ON status_movement.id = m."statusId" 
-    LEFT JOIN "ProductSalesPrice" psp ON psp."productId" = p.id 
-    LEFT JOIN "Status" status_sales_price ON status_sales_price.id = psp."statusId" 
-    WHERE status_product.code = '${STATUS.ACTIVE}'
+      COALESCE(psp."uuid", '') AS product_sales_price_id,
+      COALESCE(psp."unitPrice", 0) AS unit_price,
+      COALESCE(psp."wholesale", 0) AS wholesale_price,
+      COALESCE(psp."purchasePrice", 0) AS purchase_price
+FROM "Product" p 
+LEFT JOIN "Status" status_product ON status_product.id = p."statusId" 
+LEFT JOIN "Category" c ON c.id = p."categoryId" 
+LEFT JOIN "Unit" u ON u.id = p."unitId" 
+LEFT JOIN "Details" d ON d."productId" = p.id 
+LEFT JOIN "Movement" m ON m.id = d."movementId" 
+LEFT JOIN "Status" status_movement ON status_movement.id = m."statusId" 
+LEFT JOIN (
+    SELECT DISTINCT ON (psp_inner."productId") 
+        psp_inner."productId",
+        psp_inner."uuid",
+        psp_inner."unitPrice",
+        psp_inner."wholesale",
+        psp_inner."purchasePrice"
+    FROM "ProductSalesPrice" psp_inner
+    LEFT JOIN "Status" status_sales_price_inner ON status_sales_price_inner.id = psp_inner."statusId"
+    WHERE status_sales_price_inner.code = '${STATUS.ACTIVE}'
+    ORDER BY psp_inner."productId", psp_inner."createdAt" DESC
+) psp ON psp."productId" = p.id 
+WHERE status_product.code = '${STATUS.ACTIVE}'
   `;
 
     // Adding the keyword condition
     if (keyword && keyword.trim() !== '') {
-      baseQuery += ` AND LOWER(p.designation) LIKE '%' || LOWER(${this.prisma.$queryRaw`'${keyword}'`}) || '%'`;
+      baseQuery += ` AND LOWER(p.designation) LIKE LOWER('%${keyword}%')`;
     }
 
     // Adding the category condition
@@ -314,18 +324,7 @@ export class ProductService {
 
     // Grouping and ordering
     const groupByClause = `
-    GROUP BY 
-      p."uuid",
-      p.designation,
-      c."uuid",
-      c.designation,
-      u."uuid",
-      u.designation,
-      status_sales_price.code,
-      psp."uuid",
-      psp."unitPrice",
-      psp."wholesale",
-      psp."purchasePrice"
+    GROUP BY p."uuid", p.designation, c."uuid", c.designation, u."uuid", u.designation, psp."uuid", psp."unitPrice", psp."wholesale", psp."purchasePrice"
     ORDER BY p.designation ASC
   `;
 
@@ -340,18 +339,8 @@ export class ProductService {
     const countQuery =
       baseQuery +
       `
-    GROUP BY 
-      p."uuid",
-      p.designation,
-      c."uuid",
-      c.designation,
-      u."uuid",
-      u.designation,
-      status_sales_price.code,
-      psp."uuid",
-      psp."unitPrice",
-      psp."wholesale",
-      psp."purchasePrice"
+    GROUP BY p."uuid", p.designation, c."uuid", c.designation, u."uuid", u.designation, psp."uuid", psp."unitPrice", psp."wholesale", psp."purchasePrice"
+    ORDER BY p.designation ASC
   `;
 
     try {
