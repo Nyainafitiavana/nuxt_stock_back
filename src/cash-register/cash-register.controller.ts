@@ -9,12 +9,7 @@ import {
 import { CashRegisterService } from './cash-register.service';
 import { AdminGuard } from '../auth/admin.guards';
 import { NextFunction, Response } from 'express';
-import {
-  ICashMonthly,
-  ICashRegister,
-  ICashWeekly,
-  ICashYearly,
-} from './cash-register.interface';
+import { ICashRegister, ICashSummary } from './cash-register.interface';
 
 @Controller('/api/cash-register')
 export class CashRegisterController {
@@ -43,7 +38,7 @@ export class CashRegisterController {
     @Next() next: NextFunction,
   ): Promise<void> {
     try {
-      const result: ICashWeekly[] =
+      const result: ICashSummary[] =
         await this.cashRegisterService.getWeeklySummaryCash();
 
       res.status(HttpStatus.OK).json(result);
@@ -59,7 +54,7 @@ export class CashRegisterController {
     @Next() next: NextFunction,
   ): Promise<void> {
     try {
-      const result: ICashMonthly[] =
+      const result: ICashSummary[] =
         await this.cashRegisterService.getMonthlySummaryCash();
 
       res.status(HttpStatus.OK).json(result);
@@ -75,7 +70,7 @@ export class CashRegisterController {
     @Next() next: NextFunction,
   ): Promise<void> {
     try {
-      const result: ICashYearly[] =
+      const result: ICashSummary[] =
         await this.cashRegisterService.getYearlySummaryCash();
 
       res.status(HttpStatus.OK).json(result);

@@ -11,19 +11,8 @@ export interface ICashRegister {
   real_cash: number;
 }
 
-export interface ICashWeekly extends IGlobalField {
-  day_date: Date;
-}
-
-export interface ICashMonthly extends IGlobalField {
-  month: string;
-}
-
-export interface ICashYearly extends IGlobalField {
-  year: number;
-}
-
-interface IGlobalField {
+export interface ICashSummary {
+  x_series: string;
   total_purchase_price: number;
   total_sales: number;
   total_expenses: number;

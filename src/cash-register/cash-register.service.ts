@@ -1,12 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import Helper from '../../utils/helper';
-import {
-  ICashMonthly,
-  ICashRegister,
-  ICashWeekly,
-  ICashYearly,
-} from './cash-register.interface';
+import { ICashRegister, ICashSummary } from './cash-register.interface';
 import { STATUS } from '../../utils/constant';
 import { SettingsService } from '../settings/settings.service';
 import { Settings } from '@prisma/client';
@@ -105,7 +100,7 @@ export class CashRegisterService {
     return result[0].amount_expenses;
   }
 
-  async getWeeklySummaryCash(): Promise<ICashWeekly[]> {
+  async getWeeklySummaryCash(): Promise<ICashSummary[]> {
     return this.prisma.$queryRaw`
       WITH week_days AS (
         SELECT 
@@ -113,20 +108,20 @@ export class CashRegisterService {
                 DATE_TRUNC('week', CURRENT_DATE),  -- Start from Monday of the current week
                 DATE_TRUNC('week', CURRENT_DATE) + INTERVAL '6 days',  -- End on Sunday
                 '1 day'
-            )::DATE AS day_date
+            )::DATE AS x_series
       ),
       daily_totals AS (
           SELECT 
-              wd.day_date,
+              wd.x_series,
               COALESCE(SUM(
                   CASE 
-                      WHEN m."isSales" = false THEN psp."purchasePrice" * d."quantity" -- Purchase calculation
+                      WHEN m."isSales" = false AND s."code" = ${STATUS.VALIDATED} THEN psp."purchasePrice" * d."quantity" -- Purchase calculation
                       ELSE 0
                   END
               ), 0) AS total_purchase_price,
               COALESCE(SUM(
                   CASE 
-                      WHEN m."isSales" = true THEN 
+                      WHEN m."isSales" = true AND s."code" = ${STATUS.COMPLETED} THEN 
                           CASE 
                               WHEN d."isUnitPrice" = true THEN psp."unitPrice" * d."quantity"  -- Sales with unit price
                               ELSE psp."wholesale" * d."quantity"  -- Sales with wholesale price
@@ -139,13 +134,13 @@ export class CashRegisterService {
               week_days wd
           LEFT JOIN 
               "Movement" m 
-              ON DATE(m."createdAt") = wd.day_date
+              ON DATE(m."createdAt") = wd.x_series
           LEFT JOIN 
               "Details" d ON m.id = d."movementId"
           LEFT JOIN 
               "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
           LEFT JOIN 
-              "Status" s ON m."statusId" = s.id AND s."code" = 'VLD'
+              "Status" s ON m."statusId" = s.id
           LEFT JOIN (
               SELECT
                   DATE("createdAt") AS expense_date,
@@ -155,16 +150,16 @@ export class CashRegisterService {
               INNER JOIN
                   "Status" es ON e."statusId" = es.id
               WHERE 
-                  es."code" = 'ACT'
+                  es."code" = ${STATUS.ACTIVE}
               GROUP BY
                   DATE("createdAt")
-          ) AS expenses_sum ON wd.day_date = expenses_sum.expense_date
+          ) AS expenses_sum ON wd.x_series = expenses_sum.expense_date
           GROUP BY 
-              wd.day_date, expenses_sum.total_expenses
+              wd.x_series, expenses_sum.total_expenses
       ),
       results AS (
           SELECT
-              day_date,
+              x_series,
               total_purchase_price,
               total_sales,
               total_expenses,
@@ -181,19 +176,18 @@ export class CashRegisterService {
           FROM daily_totals
       )
       SELECT 
-          day_date,
+          x_series,
           total_purchase_price,
           total_sales,
           total_expenses,
           benefits,
           loss
       FROM results
-      ORDER BY day_date;
-
+      ORDER BY x_series;
     `;
   }
 
-  async getMonthlySummaryCash(): Promise<ICashMonthly[]> {
+  async getMonthlySummaryCash(): Promise<ICashSummary[]> {
     return this.prisma.$queryRaw`
       WITH months AS (
         SELECT 
@@ -208,13 +202,14 @@ export class CashRegisterService {
               DATE_TRUNC('month', wd.month_date) AS month_date,
               COALESCE(SUM(
                   CASE 
-                      WHEN m."isSales" = false THEN psp."purchasePrice" * d."quantity" -- Purchase calculation
+                      WHEN m."isSales" = false AND s."code" = ${STATUS.VALIDATED} THEN psp."purchasePrice" * d."quantity" -- Purchase calculation
                       ELSE 0
                   END
               ), 0) AS total_purchase_price,
               COALESCE(SUM(
                   CASE 
-                      WHEN m."isSales" = true THEN 
+                      WHEN m."isSales" = true and s."code" = ${STATUS.COMPLETED}
+                      THEN 
                           CASE 
                               WHEN d."isUnitPrice" = true THEN psp."unitPrice" * d."quantity"  -- Sales with unit price
                               ELSE psp."wholesale" * d."quantity"  -- Sales with wholesale price
@@ -232,7 +227,7 @@ export class CashRegisterService {
           LEFT JOIN 
               "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
           LEFT JOIN 
-              "Status" s ON m."statusId" = s.id AND s."code" = 'VLD'
+              "Status" s ON m."statusId" = s.id
           GROUP BY 
               wd.month_date
       ),
@@ -245,7 +240,7 @@ export class CashRegisterService {
           INNER JOIN
               "Status" es ON e."statusId" = es.id
           WHERE 
-              es."code" = 'ACT'
+              es."code" = ${STATUS.ACTIVE}
           GROUP BY
               DATE_TRUNC('month', "createdAt")
       ),
@@ -270,7 +265,7 @@ export class CashRegisterService {
           ON DATE_TRUNC('month', mt.month_date) = me.expense_month
       )
       SELECT 
-          TO_CHAR(month_date, 'Mon') AS month,
+          TO_CHAR(month_date, 'Mon') AS x_series,
           total_purchase_price,
           total_sales,
           total_expenses,
@@ -281,28 +276,28 @@ export class CashRegisterService {
     `;
   }
 
-  async getYearlySummaryCash(): Promise<ICashYearly[]> {
+  async getYearlySummaryCash(): Promise<ICashSummary[]> {
     return this.prisma.$queryRaw`
       WITH years AS (
-        SELECT 
-          generate_series(
-              DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '5 years',  -- 5 years before the current year
-              DATE_TRUNC('year', CURRENT_DATE),  -- Current year
-              '1 year'
-          )::DATE AS year_date
-        ),
+          SELECT 
+              generate_series(
+                  DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '5 years',  -- 5 years before the current year
+                  DATE_TRUNC('year', CURRENT_DATE),  -- Current year
+                  '1 year'
+              )::DATE AS x_series
+      ),
       yearly_totals AS (
           SELECT 
-              DATE_TRUNC('year', wd.year_date) AS year_date,
+              DATE_TRUNC('year', wd.x_series) AS x_series,
               COALESCE(SUM(
                   CASE 
-                      WHEN m."isSales" = false THEN psp."purchasePrice" * d."quantity" -- Purchase calculation
+                      WHEN m."isSales" = false AND s."code" = ${STATUS.VALIDATED} THEN psp."purchasePrice" * d."quantity" -- Purchase calculation
                       ELSE 0
                   END
               ), 0) AS total_purchase_price,
               COALESCE(SUM(
                   CASE 
-                      WHEN m."isSales" = true THEN 
+                      WHEN m."isSales" = true AND s."code" = ${STATUS.COMPLETED} THEN 
                           CASE 
                               WHEN d."isUnitPrice" = true THEN psp."unitPrice" * d."quantity"  -- Sales with unit price
                               ELSE psp."wholesale" * d."quantity"  -- Sales with wholesale price
@@ -314,15 +309,15 @@ export class CashRegisterService {
               years wd
           LEFT JOIN 
               "Movement" m 
-              ON DATE_TRUNC('year', m."createdAt") = DATE_TRUNC('year', wd.year_date)
+              ON DATE_TRUNC('year', m."createdAt") = DATE_TRUNC('year', wd.x_series)
           LEFT JOIN 
               "Details" d ON m.id = d."movementId"
           LEFT JOIN 
               "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
           LEFT JOIN 
-              "Status" s ON m."statusId" = s.id AND s."code" = 'VLD'
+              "Status" s ON m."statusId" = s.id
           GROUP BY 
-              wd.year_date
+              wd.x_series
       ),
       yearly_expenses AS (
           SELECT
@@ -339,7 +334,7 @@ export class CashRegisterService {
       ),
       results AS (
           SELECT
-              yt.year_date,
+              yt.x_series,
               yt.total_purchase_price,
               yt.total_sales,
               COALESCE(ye.total_expenses, 0) AS total_expenses,
@@ -355,17 +350,17 @@ export class CashRegisterService {
               END AS loss
           FROM yearly_totals yt
           LEFT JOIN yearly_expenses ye
-          ON DATE_TRUNC('year', yt.year_date) = ye.expense_year
+          ON DATE_TRUNC('year', yt.x_series) = ye.expense_year
       )
       SELECT 
-          EXTRACT(YEAR FROM year_date) AS year,
+          EXTRACT(YEAR FROM x_series) AS x_series,
           total_purchase_price,
           total_sales,
           total_expenses,
           benefits,
           loss
       FROM results
-      ORDER BY year_date;
+      ORDER BY x_series;
     `;
   }
 }
