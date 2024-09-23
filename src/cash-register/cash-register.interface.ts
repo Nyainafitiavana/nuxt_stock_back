@@ -13,9 +13,26 @@ export interface ICashRegister {
 
 export interface ICashSummary {
   x_series: string;
-  total_purchase_price: number;
-  total_sales: number;
+  total_purchase_amount: number;
+  total_sales_amount: number;
+  total_profit_amount: number;
+  total_loss_amount: number;
   total_expenses: number;
-  benefits: number;
-  loss: number;
+}
+
+export interface IProfitLoss {
+  x_series: string;
+  total_profit_amount: number;
+  total_loss_amount: number;
+}
+
+export interface ISalesPurchase {
+  x_series: string;
+  total_purchase_amount: number;
+  total_sales_amount: number;
+}
+
+export interface IExpenses {
+  x_series: string;
+  total_expenses: number;
 }

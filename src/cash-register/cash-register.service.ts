@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import Helper from '../../utils/helper';
-import { ICashRegister, ICashSummary } from './cash-register.interface';
+import {
+  ICashRegister,
+  ICashSummary,
+  IExpenses,
+  IProfitLoss,
+  ISalesPurchase,
+} from './cash-register.interface';
 import { STATUS } from '../../utils/constant';
 import { SettingsService } from '../settings/settings.service';
 import { Settings } from '@prisma/client';
@@ -100,69 +106,217 @@ export class CashRegisterService {
     return result[0].amount_expenses;
   }
 
-  async getWeeklySummaryCash(): Promise<ICashSummary[]> {
+  async getWeeklyProfitAndLoss(): Promise<IProfitLoss[]> {
     return this.prisma.$queryRaw`
       WITH week_days AS (
-        SELECT generate_series(
-            DATE_TRUNC('week', CURRENT_DATE)::date, 
-            (DATE_TRUNC('week', CURRENT_DATE) + '6 days'::interval)::date, 
-            '1 day'::interval
-        ) AS day
+            SELECT generate_series(
+                DATE_TRUNC('week', CURRENT_DATE)::date, 
+                (DATE_TRUNC('week', CURRENT_DATE) + '6 days'::interval)::date, 
+                '1 day'::interval
+            ) AS day
+        ),
+        movement_data AS (
+            SELECT 
+                wd.day as x_series, 
+                COALESCE(SUM(CASE 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
+                        CASE 
+                            WHEN d."isUnitPrice" = true THEN 
+                                GREATEST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0)
+                            ELSE 
+                                GREATEST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0)
+                        END
+                    ELSE 0 
+                END), 0) AS total_profit_amount,
+                COALESCE(SUM(CASE 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
+                        CASE 
+                            WHEN d."isUnitPrice" = true THEN 
+                                ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0))
+                            ELSE 
+                                ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0))
+                        END
+                    ELSE 0 
+                END), 0) AS total_loss_amount
+            FROM week_days wd
+            LEFT JOIN "Movement" m ON m."createdAt"::date = wd.day
+            LEFT JOIN "Details" d ON m.id = d."movementId"
+            LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
+            LEFT JOIN "Status" s ON m."statusId" = s.id
+            WHERE s.code IN (${STATUS.COMPLETED}, ${STATUS.VALIDATED}) OR s.code IS NULL
+            GROUP BY wd.day
+        )
+        SELECT 
+            wd.day AS x_series,
+            COALESCE(m.total_profit_amount, 0) AS total_profit_amount,
+            COALESCE(m.total_loss_amount, 0) AS total_loss_amount
+        FROM week_days wd
+        LEFT JOIN movement_data m ON wd.day = m.x_series
+        ORDER BY wd.day;
+    `;
+  }
+
+  async getMonthlyProfitAndLoss(): Promise<IProfitLoss[]> {
+    return this.prisma.$queryRaw`
+      WITH year_months AS (
+            SELECT 
+                EXTRACT(MONTH FROM generate_series(
+                    DATE_TRUNC('year', CURRENT_DATE)::date, 
+                    (DATE_TRUNC('year', CURRENT_DATE) + '11 months'::interval)::date, 
+                    '1 month'::interval
+                )) AS month_number
+        ),
+        month_names AS (
+            SELECT 1 AS month_number, 'Jan' AS month_name
+            UNION ALL SELECT 2, 'Feb'
+            UNION ALL SELECT 3, 'Mar'
+            UNION ALL SELECT 4, 'Apr'
+            UNION ALL SELECT 5, 'May'
+            UNION ALL SELECT 6, 'Jun'
+            UNION ALL SELECT 7, 'Jul'
+            UNION ALL SELECT 8, 'Aug'
+            UNION ALL SELECT 9, 'Sep'
+            UNION ALL SELECT 10, 'Oct'
+            UNION ALL SELECT 11, 'Nov'
+            UNION ALL SELECT 12, 'Dec'
+        ),
+        monthly_movement_data AS (
+            SELECT 
+                EXTRACT(MONTH FROM m."createdAt") AS month_number,
+                COALESCE(SUM(CASE 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
+                        CASE 
+                            WHEN d."isUnitPrice" = true THEN 
+                                GREATEST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0)
+                            ELSE 
+                                GREATEST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0)
+                        END
+                    ELSE 0 
+                END), 0) AS total_profit_amount,
+                COALESCE(SUM(CASE 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
+                        CASE 
+                            WHEN d."isUnitPrice" = true THEN 
+                                ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0))
+                            ELSE 
+                                ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0))
+                        END
+                    ELSE 0 
+                END), 0) AS total_loss_amount
+            FROM "Movement" m
+            LEFT JOIN "Details" d ON m.id = d."movementId"
+            LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
+            LEFT JOIN "Status" s ON m."statusId" = s.id
+            WHERE s.code IN (${STATUS.COMPLETED}, ${STATUS.VALIDATED}) OR s.code IS NULL
+            GROUP BY EXTRACT(MONTH FROM m."createdAt")
+        )
+        SELECT 
+            mn.month_name AS x_series,
+            COALESCE(mmd.total_profit_amount, 0) AS total_profit_amount,
+            COALESCE(mmd.total_loss_amount, 0) AS total_loss_amount
+        FROM year_months ym
+        JOIN month_names mn ON ym.month_number = mn.month_number
+        LEFT JOIN monthly_movement_data mmd ON ym.month_number = mmd.month_number
+        ORDER BY ym.month_number;
+    `;
+  }
+
+  async getYearlyProfitAndLoss(): Promise<IProfitLoss[]> {
+    return this.prisma.$queryRaw`
+      WITH years AS (
+            SELECT generate_series(EXTRACT(YEAR FROM CURRENT_DATE) - 5, EXTRACT(YEAR FROM CURRENT_DATE)) AS year
+        ),
+        yearly_movement_data AS (
+            SELECT 
+                EXTRACT(YEAR FROM m."createdAt") AS year,
+                COALESCE(SUM(CASE 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
+                        CASE 
+                            WHEN d."isUnitPrice" = true THEN 
+                                GREATEST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0)
+                            ELSE 
+                                GREATEST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0)
+                        END
+                    ELSE 0 
+                END), 0) AS total_profit_amount,
+                COALESCE(SUM(CASE 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
+                        CASE 
+                            WHEN d."isUnitPrice" = true THEN 
+                                ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0))
+                            ELSE 
+                                ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0))
+                        END
+                    ELSE 0 
+                END), 0) AS total_loss_amount
+            FROM "Movement" m
+            LEFT JOIN "Details" d ON m.id = d."movementId"
+            LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
+            LEFT JOIN "Status" s ON m."statusId" = s.id
+            WHERE s.code IN (${STATUS.COMPLETED}, ${STATUS.VALIDATED}) OR s.code IS NULL
+            GROUP BY EXTRACT(YEAR FROM m."createdAt")
+        )
+        SELECT 
+            y.year as x_series,
+            COALESCE(ymd.total_profit_amount, 0) AS total_profit_amount,
+            COALESCE(ymd.total_loss_amount, 0) AS total_loss_amount
+        FROM years y
+        LEFT JOIN yearly_movement_data ymd ON y.year = ymd.year
+        ORDER BY y.year;
+    `;
+  }
+
+  async getWeeklySalesAndPurchase(): Promise<ISalesPurchase[]> {
+    return this.prisma.$queryRaw`
+      WITH week_days AS (
+          SELECT generate_series(
+              DATE_TRUNC('week', CURRENT_DATE)::date, 
+              (DATE_TRUNC('week', CURRENT_DATE) + '6 days'::interval)::date, 
+              '1 day'::interval
+          ) AS day
+      ),
+      movement_data AS (
+          SELECT 
+              wd.day as x_series, 
+              COALESCE(SUM(CASE 
+                  WHEN m."isSales" = false AND s.code = ${STATUS.VALIDATED} THEN (psp."purchasePrice" * d.quantity)
+                  ELSE 0 
+              END), 0) AS total_purchase_amount,
+              COALESCE(SUM(CASE 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
+                      CASE 
+                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                          ELSE (psp.wholesale * d.quantity)
+                      END
+                  ELSE 0 
+              END), 0) AS total_sales_amount
+          FROM week_days wd
+          LEFT JOIN "Movement" m ON m."createdAt"::date = wd.day
+          LEFT JOIN "Details" d ON m.id = d."movementId"
+          LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
+          LEFT JOIN "Status" s ON m."statusId" = s.id
+          WHERE s.code IN (${STATUS.COMPLETED}, ${STATUS.VALIDATED}) OR s.code IS NULL
+          GROUP BY wd.day
       )
       SELECT 
-          wd.day as x_series, 
-          COALESCE(SUM(CASE 
-              WHEN m."isSales" = false AND s.code = 'VLD' THEN (psp."purchasePrice" * d.quantity)
-              ELSE 0 
-          END), 0) AS total_purchase_amount,
-          COALESCE(SUM(CASE 
-              WHEN m."isSales" = true AND s.code = 'CMP' THEN 
-                  CASE 
-                      WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
-                      ELSE (psp.wholesale * d.quantity)
-                  END
-              ELSE 0 
-          END), 0) AS total_sales_amount,
-          COALESCE(SUM(CASE 
-              WHEN m."isSales" = true AND s.code = 'CMP' THEN 
-                  CASE 
-                      WHEN d."isUnitPrice" = true THEN 
-                          GREATEST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0)
-                      ELSE 
-                          GREATEST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0)
-                  END
-              ELSE 0 
-          END), 0) AS total_profit_amount,
-          COALESCE(SUM(CASE 
-              WHEN m."isSales" = true AND s.code = 'CMP' THEN 
-                  CASE 
-                      WHEN d."isUnitPrice" = true THEN 
-                          ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0))
-                      ELSE 
-                          ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0))
-                  END
-              ELSE 0 
-          END), 0) AS total_loss_amount
+          wd.day AS x_series,
+          COALESCE(m.total_purchase_amount, 0) AS total_purchase_amount,
+          COALESCE(m.total_sales_amount, 0) AS total_sales_amount
       FROM week_days wd
-      LEFT JOIN "Movement" m ON m."createdAt"::date = wd.day
-      LEFT JOIN "Details" d ON m.id = d."movementId"
-      LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
-      LEFT JOIN "Status" s ON m."statusId" = s.id
-      WHERE s.code IN ('CMP', 'VLD') OR s.code IS NULL
-      GROUP BY wd.day
+      LEFT JOIN movement_data m ON wd.day = m.x_series
       ORDER BY wd.day;
     `;
   }
 
-  async getMonthlySummaryCash(): Promise<ICashSummary[]> {
+  async getMonthlySalesAndPurchase(): Promise<ISalesPurchase[]> {
     return this.prisma.$queryRaw`
       WITH year_months AS (
-        SELECT 
-            EXTRACT(MONTH FROM generate_series(
-                DATE_TRUNC('year', CURRENT_DATE)::date, 
-                (DATE_TRUNC('year', CURRENT_DATE) + '11 months'::interval)::date, 
-                '1 month'::interval
-            )) AS month_number
+          SELECT 
+              EXTRACT(MONTH FROM generate_series(
+                  DATE_TRUNC('year', CURRENT_DATE)::date, 
+                  (DATE_TRUNC('year', CURRENT_DATE) + '11 months'::interval)::date, 
+                  '1 month'::interval
+              )) AS month_number
       ),
       month_names AS (
           SELECT 1 AS month_number, 'Jan' AS month_name
@@ -177,59 +331,46 @@ export class CashRegisterService {
           UNION ALL SELECT 10, 'Oct'
           UNION ALL SELECT 11, 'Nov'
           UNION ALL SELECT 12, 'Dec'
+      ),
+      monthly_movement_data AS (
+          SELECT 
+              EXTRACT(MONTH FROM m."createdAt") AS month_number,
+              COALESCE(SUM(CASE 
+                  WHEN m."isSales" = false AND s.code = 'VLD' THEN (psp."purchasePrice" * d.quantity)
+                  ELSE 0 
+              END), 0) AS total_purchase_amount,
+              COALESCE(SUM(CASE 
+                  WHEN m."isSales" = true AND s.code = 'CMP' THEN 
+                      CASE 
+                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                          ELSE (psp.wholesale * d.quantity)
+                      END
+                  ELSE 0 
+              END), 0) AS total_sales_amount
+          FROM "Movement" m
+          LEFT JOIN "Details" d ON m.id = d."movementId"
+          LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
+          LEFT JOIN "Status" s ON m."statusId" = s.id
+          WHERE s.code IN ('CMP', 'VLD') OR s.code IS NULL
+          GROUP BY EXTRACT(MONTH FROM m."createdAt")
       )
       SELECT 
-          mn.month_name x_series,
-          COALESCE(SUM(CASE 
-              WHEN m."isSales" = false AND s.code = 'VLD' THEN (psp."purchasePrice" * d.quantity)
-              ELSE 0 
-          END), 0) AS total_purchase_amount,
-          COALESCE(SUM(CASE 
-              WHEN m."isSales" = true AND s.code = 'CMP' THEN 
-                  CASE 
-                      WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
-                      ELSE (psp.wholesale * d.quantity)
-                  END
-              ELSE 0 
-          END), 0) AS total_sales_amount,
-          COALESCE(SUM(CASE 
-              WHEN m."isSales" = true AND s.code = 'CMP' THEN 
-                  CASE 
-                      WHEN d."isUnitPrice" = true THEN 
-                          GREATEST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0)
-                      ELSE 
-                          GREATEST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0)
-                  END
-              ELSE 0 
-          END), 0) AS total_profit_amount,
-          COALESCE(SUM(CASE 
-              WHEN m."isSales" = true AND s.code = 'CMP' THEN 
-                  CASE 
-                      WHEN d."isUnitPrice" = true THEN 
-                          ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0))
-                      ELSE 
-                          ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0))
-                  END
-              ELSE 0 
-          END), 0) AS total_loss_amount
+          mn.month_name AS x_series,
+          COALESCE(mmd.total_purchase_amount, 0) AS total_purchase_amount,
+          COALESCE(mmd.total_sales_amount, 0) AS total_sales_amount
       FROM year_months ym
       JOIN month_names mn ON ym.month_number = mn.month_number
-      LEFT JOIN "Movement" m ON EXTRACT(MONTH FROM m."createdAt") = ym.month_number
-      LEFT JOIN "Details" d ON m.id = d."movementId"
-      LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
-      LEFT JOIN "Status" s ON m."statusId" = s.id
-      WHERE s.code IN ('CMP', 'VLD') OR s.code IS NULL
-      GROUP BY mn.month_name, mn.month_number
-      ORDER BY mn.month_number;
+      LEFT JOIN monthly_movement_data mmd ON ym.month_number = mmd.month_number
+      ORDER BY ym.month_number;
     `;
   }
 
-  async getYearlySummaryCash(): Promise<ICashSummary[]> {
+  async getYearlySalesAndPurchase(): Promise<ISalesPurchase[]> {
     return this.prisma.$queryRaw`
       WITH years AS (
-        SELECT generate_series(EXTRACT(YEAR FROM CURRENT_DATE) - 4, EXTRACT(YEAR FROM CURRENT_DATE)) AS year
+          SELECT generate_series(EXTRACT(YEAR FROM CURRENT_DATE) - 5, EXTRACT(YEAR FROM CURRENT_DATE)) AS year
       ),
-      yearly_data AS (
+      yearly_movement_data AS (
           SELECT 
               EXTRACT(YEAR FROM m."createdAt") AS year,
               COALESCE(SUM(CASE 
@@ -243,27 +384,7 @@ export class CashRegisterService {
                           ELSE (psp.wholesale * d.quantity)
                       END
                   ELSE 0 
-              END), 0) AS total_sales_amount,
-              COALESCE(SUM(CASE 
-                  WHEN m."isSales" = true AND s.code = 'CMP' THEN 
-                      CASE 
-                          WHEN d."isUnitPrice" = true THEN 
-                              GREATEST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0)
-                          ELSE 
-                              GREATEST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0)
-                      END
-                  ELSE 0 
-              END), 0) AS total_profit_amount,
-              COALESCE(SUM(CASE 
-                  WHEN m."isSales" = true AND s.code = 'CMP' THEN 
-                      CASE 
-                          WHEN d."isUnitPrice" = true THEN 
-                              ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0))
-                          ELSE 
-                              ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0))
-                      END
-                  ELSE 0 
-              END), 0) AS total_loss_amount
+              END), 0) AS total_sales_amount
           FROM "Movement" m
           LEFT JOIN "Details" d ON m.id = d."movementId"
           LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
@@ -273,12 +394,102 @@ export class CashRegisterService {
       )
       SELECT 
           y.year as x_series,
-          COALESCE(yd.total_purchase_amount, 0) AS total_purchase_amount,
-          COALESCE(yd.total_sales_amount, 0) AS total_sales_amount,
-          COALESCE(yd.total_profit_amount, 0) AS total_profit_amount,
-          COALESCE(yd.total_loss_amount, 0) AS total_loss_amount
+          COALESCE(ymd.total_purchase_amount, 0) AS total_purchase_amount,
+          COALESCE(ymd.total_sales_amount, 0) AS total_sales_amount
       FROM years y
-      LEFT JOIN yearly_data yd ON y.year = yd.year
+      LEFT JOIN yearly_movement_data ymd ON y.year = ymd.year
+      ORDER BY y.year;
+    `;
+  }
+
+  async getWeeklyExpenses(): Promise<IExpenses[]> {
+    return this.prisma.$queryRaw`
+      WITH week_days AS (
+          SELECT generate_series(
+              DATE_TRUNC('week', CURRENT_DATE)::date, 
+              (DATE_TRUNC('week', CURRENT_DATE) + '6 days'::interval)::date, 
+              '1 day'::interval
+          ) AS day
+      ),
+      expenses_data AS (
+          SELECT 
+              wd.day AS x_series,
+              COALESCE(SUM(e.amount), 0) AS total_expenses_amount
+          FROM week_days wd
+          LEFT JOIN "Expenses" e ON e."createdAt"::date = wd.day
+          WHERE e."statusId" = (SELECT id FROM "Status" WHERE code = ${STATUS.ACTIVE})
+          GROUP BY wd.day
+      )
+      SELECT 
+          wd.day AS x_series,
+          COALESCE(e.total_expenses_amount, 0) AS total_expenses_amount
+      FROM week_days wd
+      LEFT JOIN expenses_data e ON wd.day = e.x_series
+      ORDER BY wd.day;
+    `;
+  }
+
+  async getMonthlyExpenses(): Promise<IExpenses[]> {
+    return this.prisma.$queryRaw`
+      WITH year_months AS (
+          SELECT 
+              EXTRACT(MONTH FROM generate_series(
+                  DATE_TRUNC('year', CURRENT_DATE)::date, 
+                  (DATE_TRUNC('year', CURRENT_DATE) + '11 months'::interval)::date, 
+                  '1 month'::interval
+              )) AS month_number
+      ),
+      month_names AS (
+          SELECT 1 AS month_number, 'Jan' AS month_name
+          UNION ALL SELECT 2, 'Feb'
+          UNION ALL SELECT 3, 'Mar'
+          UNION ALL SELECT 4, 'Apr'
+          UNION ALL SELECT 5, 'May'
+          UNION ALL SELECT 6, 'Jun'
+          UNION ALL SELECT 7, 'Jul'
+          UNION ALL SELECT 8, 'Aug'
+          UNION ALL SELECT 9, 'Sep'
+          UNION ALL SELECT 10, 'Oct'
+          UNION ALL SELECT 11, 'Nov'
+          UNION ALL SELECT 12, 'Dec'
+      ),
+      monthly_expenses_data AS (
+          SELECT 
+              EXTRACT(MONTH FROM e."createdAt") AS month_number,
+              COALESCE(SUM(e.amount), 0) AS total_expenses_amount
+          FROM "Expenses" e
+          LEFT JOIN "Status" s ON e."statusId" = s.id
+          WHERE s.code = ${STATUS.ACTIVE}
+          GROUP BY EXTRACT(MONTH FROM e."createdAt")
+      )
+      SELECT 
+          mn.month_name AS x_series,
+          COALESCE(me.total_expenses_amount, 0) AS total_expenses_amount
+      FROM year_months ym
+      JOIN month_names mn ON ym.month_number = mn.month_number
+      LEFT JOIN monthly_expenses_data me ON ym.month_number = me.month_number
+      ORDER BY ym.month_number;
+    `;
+  }
+
+  async getYearlyExpenses(): Promise<IExpenses[]> {
+    return this.prisma.$queryRaw`
+      WITH years AS (
+          SELECT generate_series(EXTRACT(YEAR FROM CURRENT_DATE) - 5, EXTRACT(YEAR FROM CURRENT_DATE)) AS year
+      ),
+      yearly_expenses_data AS (
+          SELECT 
+              EXTRACT(YEAR FROM e."createdAt") AS year,
+              COALESCE(SUM(e.amount), 0) AS total_expenses_amount
+          FROM "Expenses" e
+          WHERE e."statusId" = (SELECT id FROM "Status" WHERE code = ${STATUS.ACTIVE})
+          GROUP BY EXTRACT(YEAR FROM e."createdAt")
+      )
+      SELECT 
+          y.year as x_series,
+          COALESCE(ye.total_expenses_amount, 0) AS total_expenses_amount
+      FROM years y
+      LEFT JOIN yearly_expenses_data ye ON y.year = ye.year
       ORDER BY y.year;
     `;
   }

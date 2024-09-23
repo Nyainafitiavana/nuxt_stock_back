@@ -9,7 +9,12 @@ import {
 import { CashRegisterService } from './cash-register.service';
 import { AdminGuard } from '../auth/admin.guards';
 import { NextFunction, Response } from 'express';
-import { ICashRegister, ICashSummary } from './cash-register.interface';
+import {
+  ICashRegister,
+  IExpenses,
+  IProfitLoss,
+  ISalesPurchase,
+} from './cash-register.interface';
 
 @Controller('/api/cash-register')
 export class CashRegisterController {
@@ -32,14 +37,14 @@ export class CashRegisterController {
   }
 
   @UseGuards(AdminGuard)
-  @Get('/weekly')
-  async getSummaryWeekly(
+  @Get('/profit-loss/weekly')
+  async getProfitAndLossWeekly(
     @Res() res: Response,
     @Next() next: NextFunction,
   ): Promise<void> {
     try {
-      const result: ICashSummary[] =
-        await this.cashRegisterService.getWeeklySummaryCash();
+      const result: IProfitLoss[] =
+        await this.cashRegisterService.getWeeklyProfitAndLoss();
 
       res.status(HttpStatus.OK).json(result);
     } catch (error) {
@@ -48,14 +53,14 @@ export class CashRegisterController {
   }
 
   @UseGuards(AdminGuard)
-  @Get('/monthly')
-  async getSummaryMonthly(
+  @Get('/profit-loss/monthly')
+  async getProfitAndLossMonthly(
     @Res() res: Response,
     @Next() next: NextFunction,
   ): Promise<void> {
     try {
-      const result: ICashSummary[] =
-        await this.cashRegisterService.getMonthlySummaryCash();
+      const result: IProfitLoss[] =
+        await this.cashRegisterService.getMonthlyProfitAndLoss();
 
       res.status(HttpStatus.OK).json(result);
     } catch (error) {
@@ -64,14 +69,110 @@ export class CashRegisterController {
   }
 
   @UseGuards(AdminGuard)
-  @Get('/yearly')
-  async getSummaryYearly(
+  @Get('/profit-loss/yearly')
+  async getProfitAndLossYearly(
     @Res() res: Response,
     @Next() next: NextFunction,
   ): Promise<void> {
     try {
-      const result: ICashSummary[] =
-        await this.cashRegisterService.getYearlySummaryCash();
+      const result: IProfitLoss[] =
+        await this.cashRegisterService.getYearlyProfitAndLoss();
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('/sales-purchase/weekly')
+  async getSalesAndPurchaseWeekly(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result: ISalesPurchase[] =
+        await this.cashRegisterService.getWeeklySalesAndPurchase();
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('/sales-purchase/monthly')
+  async getSalesAndPurchaseMonthly(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result: ISalesPurchase[] =
+        await this.cashRegisterService.getMonthlySalesAndPurchase();
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('/sales-purchase/yearly')
+  async getSalesAndPurchaseYearly(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result: ISalesPurchase[] =
+        await this.cashRegisterService.getYearlySalesAndPurchase();
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('/expenses/weekly')
+  async getExpensesWeekly(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result: IExpenses[] =
+        await this.cashRegisterService.getWeeklyExpenses();
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('/expenses/monthly')
+  async getExpensesMonthly(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result: IExpenses[] =
+        await this.cashRegisterService.getMonthlyExpenses();
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('/expenses/yearly')
+  async getExpensesYearly(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result: IExpenses[] =
+        await this.cashRegisterService.getYearlyExpenses();
 
       res.status(HttpStatus.OK).json(result);
     } catch (error) {
