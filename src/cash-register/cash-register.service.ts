@@ -3,7 +3,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import Helper from '../../utils/helper';
 import {
   ICashRegister,
-  ICashSummary,
   IExpenses,
   IProfitLoss,
   ISalesPurchase,
