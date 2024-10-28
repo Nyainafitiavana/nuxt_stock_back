@@ -522,8 +522,8 @@ export class CashRegisterService {
           wd.day AS x_series,
           COALESCE(
             ( 
-              (ic.initial_cash + m.total_sales_amount) -
-              (m.total_purchase_amount + e.total_expenses_amount)
+              COALESCE((ic.initial_cash + m.total_sales_amount), 0) -
+              COALESCE((m.total_purchase_amount + e.total_expenses_amount), 0)
             ), 0
           ) AS revenue
       FROM week_days wd
@@ -596,8 +596,8 @@ export class CashRegisterService {
           mn.month_name AS x_series,
           COALESCE(
             (
-                (ic.initial_cash + mmd.total_sales_amount) -
-                (mmd.total_purchase_amount + me.total_expenses_amount)
+                COALESCE((ic.initial_cash + mmd.total_sales_amount), 0) - 
+                COALESCE((mmd.total_purchase_amount + me.total_expenses_amount), 0)
             ), 0
           ) AS revenue
       FROM year_months ym
@@ -651,8 +651,8 @@ export class CashRegisterService {
           y.year as x_series,
           COALESCE(
             ( 
-              (ic.initial_cash + ymd.total_sales_amount) -
-              (ymd.total_purchase_amount + ye.total_expenses_amount)
+              COALESCE((ic.initial_cash + ymd.total_sales_amount), 0) -
+              COALESCE((ymd.total_purchase_amount + ye.total_expenses_amount), 0)
             ), 0
           ) AS revenue
       FROM years y
