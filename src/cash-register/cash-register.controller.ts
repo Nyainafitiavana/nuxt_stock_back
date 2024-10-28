@@ -13,6 +13,7 @@ import {
   ICashRegister,
   IExpenses,
   IProfitLoss,
+  IRevenue,
   ISalesPurchase,
 } from './cash-register.interface';
 
@@ -173,6 +174,54 @@ export class CashRegisterController {
     try {
       const result: IExpenses[] =
         await this.cashRegisterService.getYearlyExpenses();
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('/revenue/weekly')
+  async getRevenueWeekly(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result: IRevenue[] =
+        await this.cashRegisterService.getWeeklyRevenue();
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('/revenue/monthly')
+  async getRevenueMonthly(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result: IRevenue[] =
+        await this.cashRegisterService.getMonthlyRevenue();
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('/revenue/yearly')
+  async getRevenueYearly(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result: IRevenue[] =
+        await this.cashRegisterService.getYearlyRevenue();
 
       res.status(HttpStatus.OK).json(result);
     } catch (error) {

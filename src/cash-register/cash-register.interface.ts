@@ -3,12 +3,6 @@ export interface ICashRegister {
   presentSalesAmount: number;
   presentPurchaseAmount: number;
   presentExpensesAmount: number;
-  totalAmountSales: number;
-  totalAmountPurchase: number;
-  amountExpenses: number;
-  amount_output: number;
-  amount_input: number;
-  real_cash: number;
 }
 
 export interface IProfitLoss {
@@ -26,4 +20,9 @@ export interface ISalesPurchase {
 export interface IExpenses {
   x_series: string;
   total_expenses: number;
+}
+
+export interface IRevenue {
+  x_series: string;
+  revenue: number;
 }

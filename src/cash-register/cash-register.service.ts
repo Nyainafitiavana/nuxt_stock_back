@@ -4,73 +4,54 @@ import {
   ICashRegister,
   IExpenses,
   IProfitLoss,
+  IRevenue,
   ISalesPurchase,
 } from './cash-register.interface';
 import { SettingsService } from '../settings/settings.service';
 import { Settings } from '@prisma/client';
-import Helper from '../utils/helper';
 import { STATUS } from '../utils/constant';
 
 @Injectable()
 export class CashRegisterService {
   constructor(
     private prisma: PrismaService,
-    private helper: Helper,
     private settingsService: SettingsService,
   ) {}
 
   async cashGlobalSummary(): Promise<ICashRegister> {
-    //---------Beginning of get all amount of all expenses---------
-    const totalAmountPurchase: number = await this.getAmountPurchase();
-    const totalAmountSales: number = await this.getAmountSales();
-    const amountExpenses: number = await this.getAmountExpenses();
-    //---------End of get all amount of all expenses---------
-    //---------Summary-------------
     //Get initialCash on settings
     const settings: Settings = await this.settingsService.getSettings();
     const initialCash: number = settings.initialCash;
-    //The amount of sales is the input
-    const totalInput: number = totalAmountSales;
-    //The amount purchase and expenses is the output
-    const totalOutput: number = totalAmountPurchase + amountExpenses;
-    //So real_cash = input - output + initialCash
-    const real_cash: number = totalInput - totalOutput + initialCash;
     //Get present amount
-    const presentSalesAmount: number = await this.getAmountSales(false);
-    const presentPurchaseAmount: number = await this.getAmountPurchase(false);
-    const presentExpensesAmount: number = await this.getAmountExpenses(false);
+    const presentSalesAmount: number = await this.getPresentAmountSales();
+    const presentPurchaseAmount: number = await this.getPresentAmountPurchase();
+    const presentExpensesAmount: number = await this.getPresentAmountExpenses();
 
     return {
       initial_cash: initialCash,
       presentSalesAmount: presentSalesAmount,
       presentPurchaseAmount: presentPurchaseAmount,
       presentExpensesAmount: presentExpensesAmount,
-      totalAmountSales: totalAmountSales,
-      totalAmountPurchase: totalAmountPurchase,
-      amountExpenses: amountExpenses,
-      amount_output: totalOutput,
-      amount_input: totalInput,
-      real_cash: real_cash,
     };
   }
 
-  async getAmountPurchase(total: boolean = true): Promise<number> {
+  async getPresentAmountPurchase(): Promise<number> {
     const result = await this.prisma.$queryRaw`
-    select 
-      coalesce(sum(psp."purchasePrice" * d.quantity), 0) as amount_purchase
-    from "Movement" m 
-    left join "Details" d on d."movementId" = m.id 
-    left join "Status" s on s.id = m."statusId" 
-    left join "ProductSalesPrice" psp on psp.id = d."salesPriceId" 
-    where m."isSales" = false
-    and s."code" = ${STATUS.VALIDATED}
-    and (${total} or m."createdAt"::DATE = CURRENT_DATE)
-  `;
+      select 
+        coalesce(sum(psp."purchasePrice" * d.quantity), 0) as amount_purchase
+      from "Movement" m 
+      left join "Details" d on d."movementId" = m.id 
+      left join "Status" s on s.id = m."statusId" 
+      left join "ProductSalesPrice" psp on psp.id = d."salesPriceId" 
+      where m."isSales" = false
+      and s."code" = ${STATUS.VALIDATED}
+      and m."createdAt"::DATE = CURRENT_DATE
+    `;
 
     return result[0].amount_purchase;
   }
 
-  async getAmountSales(total: boolean = true): Promise<number> {
+  async getPresentAmountSales(): Promise<number> {
     const result = await this.prisma.$queryRaw`
       select 
         coalesce(
@@ -86,20 +67,20 @@ export class CashRegisterService {
       left join "ProductSalesPrice" psp on psp.id = d."salesPriceId" 
       where "isSales" = true
       and s.code = ${STATUS.COMPLETED}
-      and (${total} or m."createdAt"::DATE = CURRENT_DATE)
+      and m."createdAt"::DATE = CURRENT_DATE
     `;
 
     return result[0].amount_sales;
   }
 
-  async getAmountExpenses(total: boolean = true): Promise<number> {
+  async getPresentAmountExpenses(): Promise<number> {
     const result = await this.prisma.$queryRaw`
       select 
         coalesce(sum(e.amount), 0) as amount_expenses 
       from "Expenses" e 
       left join "Status" s on s.id = e."statusId" 
       where s.code = ${STATUS.ACTIVE}
-        and (${total} or e."createdAt"::DATE = CURRENT_DATE)
+        and e."createdAt"::DATE = CURRENT_DATE
     `;
 
     return result[0].amount_expenses;
@@ -142,7 +123,7 @@ export class CashRegisterService {
             LEFT JOIN "Details" d ON m.id = d."movementId"
             LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
             LEFT JOIN "Status" s ON m."statusId" = s.id
-            WHERE s.code IN (${STATUS.COMPLETED}, ${STATUS.VALIDATED}) OR s.code IS NULL
+            WHERE s.code = ${STATUS.COMPLETED} OR s.code = ${STATUS.VALIDATED}
             GROUP BY wd.day
         )
         SELECT 
@@ -206,7 +187,7 @@ export class CashRegisterService {
             LEFT JOIN "Details" d ON m.id = d."movementId"
             LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
             LEFT JOIN "Status" s ON m."statusId" = s.id
-            WHERE s.code IN (${STATUS.COMPLETED}, ${STATUS.VALIDATED}) OR s.code IS NULL
+            WHERE s.code = ${STATUS.COMPLETED} OR s.code = ${STATUS.VALIDATED}
             GROUP BY EXTRACT(MONTH FROM m."createdAt")
         )
         SELECT 
@@ -252,7 +233,7 @@ export class CashRegisterService {
             LEFT JOIN "Details" d ON m.id = d."movementId"
             LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
             LEFT JOIN "Status" s ON m."statusId" = s.id
-            WHERE s.code IN (${STATUS.COMPLETED}, ${STATUS.VALIDATED}) OR s.code IS NULL
+            WHERE s.code = ${STATUS.COMPLETED} OR s.code = ${STATUS.VALIDATED}
             GROUP BY EXTRACT(YEAR FROM m."createdAt")
         )
         SELECT 
@@ -294,7 +275,7 @@ export class CashRegisterService {
           LEFT JOIN "Details" d ON m.id = d."movementId"
           LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
           LEFT JOIN "Status" s ON m."statusId" = s.id
-          WHERE s.code IN (${STATUS.COMPLETED}, ${STATUS.VALIDATED}) OR s.code IS NULL
+          WHERE s.code = ${STATUS.COMPLETED} OR s.code = ${STATUS.VALIDATED}
           GROUP BY wd.day
       )
       SELECT 
@@ -335,11 +316,11 @@ export class CashRegisterService {
           SELECT 
               EXTRACT(MONTH FROM m."createdAt") AS month_number,
               COALESCE(SUM(CASE 
-                  WHEN m."isSales" = false AND s.code = 'VLD' THEN (psp."purchasePrice" * d.quantity)
+                  WHEN m."isSales" = false AND s.code = ${STATUS.VALIDATED} THEN (psp."purchasePrice" * d.quantity)
                   ELSE 0 
               END), 0) AS total_purchase_amount,
               COALESCE(SUM(CASE 
-                  WHEN m."isSales" = true AND s.code = 'CMP' THEN 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                       CASE 
                           WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
                           ELSE (psp.wholesale * d.quantity)
@@ -350,7 +331,7 @@ export class CashRegisterService {
           LEFT JOIN "Details" d ON m.id = d."movementId"
           LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
           LEFT JOIN "Status" s ON m."statusId" = s.id
-          WHERE s.code IN ('CMP', 'VLD') OR s.code IS NULL
+          WHERE s.code = ${STATUS.COMPLETED} OR s.code = ${STATUS.VALIDATED}
           GROUP BY EXTRACT(MONTH FROM m."createdAt")
       )
       SELECT 
@@ -373,11 +354,11 @@ export class CashRegisterService {
           SELECT 
               EXTRACT(YEAR FROM m."createdAt") AS year,
               COALESCE(SUM(CASE 
-                  WHEN m."isSales" = false AND s.code = 'VLD' THEN (psp."purchasePrice" * d.quantity)
+                  WHEN m."isSales" = false AND s.code = ${STATUS.VALIDATED} THEN (psp."purchasePrice" * d.quantity)
                   ELSE 0 
               END), 0) AS total_purchase_amount,
               COALESCE(SUM(CASE 
-                  WHEN m."isSales" = true AND s.code = 'CMP' THEN 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                       CASE 
                           WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
                           ELSE (psp.wholesale * d.quantity)
@@ -388,7 +369,7 @@ export class CashRegisterService {
           LEFT JOIN "Details" d ON m.id = d."movementId"
           LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
           LEFT JOIN "Status" s ON m."statusId" = s.id
-          WHERE s.code IN ('CMP', 'VLD') OR s.code IS NULL
+          WHERE s.code = ${STATUS.COMPLETED} OR s.code = ${STATUS.VALIDATED}
           GROUP BY EXTRACT(YEAR FROM m."createdAt")
       )
       SELECT 
@@ -489,6 +470,195 @@ export class CashRegisterService {
           COALESCE(ye.total_expenses_amount, 0) AS total_expenses_amount
       FROM years y
       LEFT JOIN yearly_expenses_data ye ON y.year = ye.year
+      ORDER BY y.year;
+    `;
+  }
+
+  async getWeeklyRevenue(): Promise<IRevenue[]> {
+    return this.prisma.$queryRaw`
+      WITH week_days AS (
+      SELECT generate_series(
+          DATE_TRUNC('week', CURRENT_DATE)::date, 
+          (DATE_TRUNC('week', CURRENT_DATE) + '6 days'::interval)::date, 
+          '1 day'::interval
+          ) AS day
+      ),
+      movement_data AS (
+          SELECT 
+              wd.day as x_series, 
+              COALESCE(SUM(CASE 
+                  WHEN m."isSales" = false AND s.code = ${STATUS.VALIDATED} THEN (psp."purchasePrice" * d.quantity)
+                  ELSE 0 
+              END), 0) AS total_purchase_amount,
+              COALESCE(SUM(CASE 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
+                      CASE 
+                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                          ELSE (psp.wholesale * d.quantity)
+                      END
+                  ELSE 0 
+              END), 0) AS total_sales_amount
+          FROM week_days wd
+          LEFT JOIN "Movement" m ON m."createdAt"::date = wd.day
+          LEFT JOIN "Details" d ON m.id = d."movementId"
+          LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
+          LEFT JOIN "Status" s ON m."statusId" = s.id
+          WHERE s.code = ${STATUS.COMPLETED} OR s.code = ${STATUS.VALIDATED}
+          GROUP BY wd.day
+      ),
+      expenses_data AS (
+        SELECT 
+          wd.day AS x_series,
+          COALESCE(SUM(e.amount), 0) AS total_expenses_amount
+        FROM week_days wd
+        LEFT JOIN "Expenses" e ON e."createdAt"::date = wd.day
+      WHERE e."statusId" = (SELECT id FROM "Status" WHERE code = ${STATUS.ACTIVE})
+        GROUP BY wd.day
+      ),
+      initial_cash_data AS (
+          SELECT COALESCE(s."initialCash", 0) AS initial_cash FROM "Settings" s LIMIT 1
+      )
+      SELECT 
+          wd.day AS x_series,
+          COALESCE(
+            ( 
+              (ic.initial_cash + m.total_sales_amount) -
+              (m.total_purchase_amount + e.total_expenses_amount)
+            ), 0
+          ) AS revenue
+      FROM week_days wd
+      LEFT JOIN movement_data m ON wd.day = m.x_series
+      LEFT JOIN expenses_data e ON wd.day = e.x_series
+      LEFT JOIN initial_cash_data ic ON true
+      ORDER BY wd.day;
+    `;
+  }
+
+  async getMonthlyRevenue(): Promise<IRevenue[]> {
+    return this.prisma.$queryRaw`
+      WITH year_months AS (
+          SELECT 
+              EXTRACT(MONTH FROM generate_series(
+                  DATE_TRUNC('year', CURRENT_DATE)::date, 
+                  (DATE_TRUNC('year', CURRENT_DATE) + '11 months'::interval)::date, 
+                  '1 month'::interval
+              )) AS month_number
+      ),
+      month_names AS (
+          SELECT 1 AS month_number, 'Jan' AS month_name
+          UNION ALL SELECT 2, 'Feb'
+          UNION ALL SELECT 3, 'Mar'
+          UNION ALL SELECT 4, 'Apr'
+          UNION ALL SELECT 5, 'May'
+          UNION ALL SELECT 6, 'Jun'
+          UNION ALL SELECT 7, 'Jul'
+          UNION ALL SELECT 8, 'Aug'
+          UNION ALL SELECT 9, 'Sep'
+          UNION ALL SELECT 10, 'Oct'
+          UNION ALL SELECT 11, 'Nov'
+          UNION ALL SELECT 12, 'Dec'
+      ),
+      monthly_movement_data AS (
+          SELECT 
+              EXTRACT(MONTH FROM m."createdAt") AS month_number,
+              COALESCE(SUM(CASE 
+                  WHEN m."isSales" = false AND s.code = ${STATUS.VALIDATED} THEN (psp."purchasePrice" * d.quantity)
+                  ELSE 0 
+              END), 0) AS total_purchase_amount,
+              COALESCE(SUM(CASE 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
+                      CASE 
+                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                          ELSE (psp.wholesale * d.quantity)
+                      END
+                  ELSE 0 
+              END), 0) AS total_sales_amount
+          FROM "Movement" m
+          LEFT JOIN "Details" d ON m.id = d."movementId"
+          LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
+          LEFT JOIN "Status" s ON m."statusId" = s.id
+          WHERE s.code = ${STATUS.COMPLETED} OR s.code = ${STATUS.VALIDATED}
+          GROUP BY EXTRACT(MONTH FROM m."createdAt")
+      ), 
+      monthly_expenses_data AS (
+          SELECT 
+              EXTRACT(MONTH FROM e."createdAt") AS month_number,
+              COALESCE(SUM(e.amount), 0) AS total_expenses_amount
+          FROM "Expenses" e
+          LEFT JOIN "Status" s ON e."statusId" = s.id
+          WHERE s.code = ${STATUS.ACTIVE}
+          GROUP BY EXTRACT(MONTH FROM e."createdAt")
+      ), 
+      initial_cash_data AS (
+          SELECT COALESCE(s."initialCash", 0) AS initial_cash FROM "Settings" s LIMIT 1
+      )
+      SELECT 
+          mn.month_name AS x_series,
+          COALESCE(
+            (
+                (ic.initial_cash + mmd.total_sales_amount) -
+                (mmd.total_purchase_amount + me.total_expenses_amount)
+            ), 0
+          ) AS revenue
+      FROM year_months ym
+      JOIN month_names mn ON ym.month_number = mn.month_number
+      LEFT JOIN monthly_movement_data mmd ON ym.month_number = mmd.month_number
+      LEFT JOIN monthly_expenses_data me ON ym.month_number = me.month_number
+      LEFT JOIN initial_cash_data ic ON true
+      ORDER BY ym.month_number;
+    `;
+  }
+
+  async getYearlyRevenue(): Promise<IRevenue[]> {
+    return this.prisma.$queryRaw`
+      WITH years AS (
+        SELECT generate_series(EXTRACT(YEAR FROM CURRENT_DATE) - 5, EXTRACT(YEAR FROM CURRENT_DATE)) AS year
+      ),
+      yearly_movement_data AS (
+          SELECT 
+              EXTRACT(YEAR FROM m."createdAt") AS year,
+              COALESCE(SUM(CASE 
+                  WHEN m."isSales" = false AND s.code = ${STATUS.VALIDATED} THEN (psp."purchasePrice" * d.quantity)
+                  ELSE 0 
+              END), 0) AS total_purchase_amount,
+              COALESCE(SUM(CASE 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
+                      CASE 
+                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                          ELSE (psp.wholesale * d.quantity)
+                      END
+                  ELSE 0 
+              END), 0) AS total_sales_amount
+          FROM "Movement" m
+          LEFT JOIN "Details" d ON m.id = d."movementId"
+          LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
+          LEFT JOIN "Status" s ON m."statusId" = s.id
+          WHERE s.code = ${STATUS.COMPLETED} OR s.code = ${STATUS.VALIDATED}
+          GROUP BY EXTRACT(YEAR FROM m."createdAt")
+      ),
+      yearly_expenses_data AS (
+          SELECT 
+              EXTRACT(YEAR FROM e."createdAt") AS year,
+          COALESCE(SUM(e.amount), 0) AS total_expenses_amount
+        FROM "Expenses" e
+        WHERE e."statusId" = (SELECT id FROM "Status" WHERE code = ${STATUS.ACTIVE})
+        GROUP BY EXTRACT(YEAR FROM e."createdAt")
+      ), 
+      initial_cash_data AS (
+          SELECT COALESCE(s."initialCash", 0) AS initial_cash FROM "Settings" s LIMIT 1
+      )
+      SELECT 
+          y.year as x_series,
+          COALESCE(
+            ( 
+              (ic.initial_cash + ymd.total_sales_amount) -
+              (ymd.total_purchase_amount + ye.total_expenses_amount)
+            ), 0
+          ) AS revenue
+      FROM years y
+      LEFT JOIN yearly_expenses_data ye ON y.year = ye.year
+      LEFT JOIN yearly_movement_data ymd ON y.year = ymd.year
+      LEFT JOIN initial_cash_data ic ON true
       ORDER BY y.year;
     `;
   }
