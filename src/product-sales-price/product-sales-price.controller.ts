@@ -16,7 +16,7 @@ import { CreateProductSalesPriceDto } from './dto/create-product-sales-price.dto
 import { NextFunction, Request, Response } from 'express';
 import { ProductSalesPrice } from '@prisma/client';
 import { AdminGuard } from '../auth/admin.guards';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
 
 @Controller('/api/sales-price')
 export class ProductSalesPriceController {

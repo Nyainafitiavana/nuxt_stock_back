@@ -15,12 +15,12 @@ import {
 import { NextFunction, Request, Response } from 'express';
 import { Product } from '@prisma/client';
 import { AdminGuard } from '../auth/admin.guards';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { AuthGuard } from '../auth/auth.guards';
-import { convertBigIntToString } from '../../utils/utilis';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
+import { convertBigIntToString } from '../utils/utilis';
 
 @Controller('/api/product')
 export class ProductController {

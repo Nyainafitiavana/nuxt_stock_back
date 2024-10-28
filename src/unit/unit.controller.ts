@@ -18,8 +18,7 @@ import { UpdateUnitDto } from './dto/update-unit.dto';
 import { AdminGuard } from '../auth/admin.guards';
 import { NextFunction, Request, Response } from 'express';
 import { Unit } from '@prisma/client';
-import { AuthGuard } from '../auth/auth.guards';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
 
 @Controller('/api/unit')
 export class UnitController {

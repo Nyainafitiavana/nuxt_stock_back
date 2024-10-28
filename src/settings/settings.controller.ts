@@ -12,10 +12,10 @@ import {
 import { SettingsService } from './settings.service';
 import { AdminGuard } from '../auth/admin.guards';
 import { NextFunction, Response } from 'express';
-import { ExecuteResponse } from '../../utils/custom.interface';
 import { Settings } from '@prisma/client';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { AuthGuard } from '../auth/auth.guards';
+import { ExecuteResponse } from '../utils/custom.interface';
 
 @Controller('/api/settings')
 export class SettingsController {

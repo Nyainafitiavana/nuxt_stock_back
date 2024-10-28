@@ -3,10 +3,10 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, Status, User } from '@prisma/client';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
-import Helper from '../../utils/helper';
-import { MESSAGE, STATUS } from '../../utils/constant';
-import { CustomException } from '../../utils/ExeptionCustom';
+import { CustomException } from '../utils/ExeptionCustom';
+import Helper from '../utils/helper';
+import { MESSAGE, STATUS } from '../utils/constant';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
 
 @Injectable()
 export class UserService {

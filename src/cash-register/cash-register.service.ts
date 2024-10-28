@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import Helper from '../../utils/helper';
 import {
   ICashRegister,
   IExpenses,
   IProfitLoss,
   ISalesPurchase,
 } from './cash-register.interface';
-import { STATUS } from '../../utils/constant';
 import { SettingsService } from '../settings/settings.service';
 import { Settings } from '@prisma/client';
+import Helper from '../utils/helper';
+import { STATUS } from '../utils/constant';
 
 @Injectable()
 export class CashRegisterService {

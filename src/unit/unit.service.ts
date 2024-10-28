@@ -2,11 +2,11 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUnitDto } from './dto/create-unit.dto';
 import { UpdateUnitDto } from './dto/update-unit.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import Helper from '../../utils/helper';
 import { Prisma, Status, Unit } from '@prisma/client';
-import { MESSAGE, STATUS } from '../../utils/constant';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
-import { CustomException } from '../../utils/ExeptionCustom';
+import Helper from '../utils/helper';
+import { MESSAGE, STATUS } from '../utils/constant';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
+import { CustomException } from '../utils/ExeptionCustom';
 
 @Injectable()
 export class UnitService {

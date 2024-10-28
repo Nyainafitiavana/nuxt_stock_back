@@ -18,7 +18,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { NextFunction, Request, Response } from 'express';
 import { Category } from '@prisma/client';
 import { AdminGuard } from '../auth/admin.guards';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
 
 @Controller('/api/category')
 export class CategoryController {

@@ -17,10 +17,10 @@ import { RejectDto, UpdateDetailsDto } from './dto/update-movement.dto';
 import { NextFunction, Request, Response } from 'express';
 import { Movement, User } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guards';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { DetailsWithStock } from './details.interface';
 import { AdminGuard } from '../auth/admin.guards';
 import { IHistoryValidation } from './historyValidation.interface';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
 
 @Controller('/api/movement')
 export class MovementController {

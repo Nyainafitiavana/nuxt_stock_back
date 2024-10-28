@@ -1,13 +1,13 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateProductSalesPriceDto } from './dto/create-product-sales-price.dto';
 import { Prisma, Product, ProductSalesPrice, Status } from '@prisma/client';
-import { MESSAGE, STATUS } from '../../utils/constant';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { PrismaService } from '../prisma/prisma.service';
-import Helper from '../../utils/helper';
 import { ProductService } from '../product/product.service';
 import { UpdateProductSalesPriceDto } from './dto/update-product-sales-price.dto';
-import { CustomException } from '../../utils/ExeptionCustom';
+import Helper from '../utils/helper';
+import { MESSAGE, STATUS } from '../utils/constant';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
+import { CustomException } from '../utils/ExeptionCustom';
 
 @Injectable()
 export class ProductSalesPriceService {

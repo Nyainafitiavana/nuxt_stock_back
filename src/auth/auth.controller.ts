@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { AuthDto } from './auth.dto';
 import { NextFunction, Response, Request } from 'express';
 import { AuthInterface } from './auth.interface';
-import Helper from './../../utils/helper';
+import Helper from '../utils/helper';
 
 @Controller('/api/auth')
 export class AuthController {

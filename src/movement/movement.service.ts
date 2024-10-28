@@ -2,7 +2,6 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateMovementDto } from './dto/create-movement.dto';
 import { RejectDto } from './dto/update-movement.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import Helper from '../../utils/helper';
 import {
   Details,
   HistoryValidation,
@@ -13,11 +12,12 @@ import {
   Status,
   User,
 } from '@prisma/client';
-import { MESSAGE, STATUS } from '../../utils/constant';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { DetailsWithStock, MovementDetails } from './details.interface';
-import { CustomException } from '../../utils/ExeptionCustom';
 import { IHistoryValidation } from './historyValidation.interface';
+import Helper from '../utils/helper';
+import { MESSAGE, STATUS } from '../utils/constant';
+import { CustomException } from '../utils/ExeptionCustom';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
 
 @Injectable()
 export class MovementService {

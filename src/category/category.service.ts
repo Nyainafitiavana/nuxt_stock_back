@@ -2,11 +2,11 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category, Prisma, Status } from '@prisma/client';
-import { MESSAGE, STATUS } from '../../utils/constant';
 import { PrismaService } from '../prisma/prisma.service';
-import Helper from '../../utils/helper';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
-import { CustomException } from '../../utils/ExeptionCustom';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
+import Helper from '../utils/helper';
+import { MESSAGE, STATUS } from '../utils/constant';
+import { CustomException } from '../utils/ExeptionCustom';
 
 @Injectable()
 export class CategoryService {

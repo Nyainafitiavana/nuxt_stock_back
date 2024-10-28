@@ -17,9 +17,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NextFunction, Response, Request } from 'express';
 import { User } from '@prisma/client';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
 import { AuthGuard } from '../auth/auth.guards';
 import { AdminGuard } from '../auth/admin.guards';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
 
 @Controller('/api/user')
 export class UserController {

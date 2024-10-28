@@ -18,7 +18,7 @@ import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { AdminGuard } from '../auth/admin.guards';
 import { NextFunction, Request, Response } from 'express';
 import { Expenses } from '@prisma/client';
-import { ExecuteResponse, Paginate } from '../../utils/custom.interface';
+import { ExecuteResponse, Paginate } from '../utils/custom.interface';
 
 @Controller('/api/expenses')
 export class ExpensesController {

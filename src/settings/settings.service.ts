@@ -1,10 +1,10 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ExecuteResponse } from '../../utils/custom.interface';
 import { Settings } from '@prisma/client';
-import { MESSAGE } from '../../utils/constant';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
-import { CustomException } from '../../utils/ExeptionCustom';
+import { ExecuteResponse } from '../utils/custom.interface';
+import { CustomException } from '../utils/ExeptionCustom';
+import { MESSAGE } from '../utils/constant';
 
 @Injectable()
 export class SettingsService {

@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ExpenseTypeService } from './expense-type.service';
 import { ExpenseTypeController } from './expense-type.controller';
-import Helper from '../../utils/helper';
 import { PrismaModule } from '../prisma/prisma.module';
+import Helper from '../utils/helper';
 
 @Module({
   imports: [PrismaModule],
