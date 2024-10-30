@@ -238,6 +238,7 @@ export class MovementService {
         p."uuid" AS product_id,
         p.designation AS product_name,
         COALESCE(d.quantity, 0) AS quantity,
+        COALESCE(d."quantityDelivered", 0) AS quantity_delivered,
         COALESCE(c."uuid", '---') AS category_id,
         COALESCE(c.designation, '---') AS category_name,
         COALESCE(u."uuid", '---') AS unit_id,

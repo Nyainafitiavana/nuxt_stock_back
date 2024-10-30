@@ -121,16 +121,17 @@ model HistoryValidation {
 }
 
 model Details {
-  id           Int               @id @default(autoincrement())
-  uuid         String            @unique
-  movementId   Int
-  productId    Int
-  salesPriceId Int
-  isUnitPrice  Boolean
-  quantity     Float
-  movement     Movement          @relation(fields: [movementId], references: [id], onDelete: Cascade)
-  product      Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
-  salesPrice   ProductSalesPrice @relation(fields: [salesPriceId], references: [id], onDelete: Cascade)
+  id                 Int               @id @default(autoincrement())
+  uuid               String            @unique
+  movementId         Int
+  productId          Int
+  salesPriceId       Int
+  isUnitPrice        Boolean
+  quantity           Float
+  quantityDelivered  Float?            @default(0)
+  movement           Movement          @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  product            Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  salesPrice         ProductSalesPrice @relation(fields: [salesPriceId], references: [id], onDelete: Cascade)
 }
 
 model Settings {
