@@ -3,7 +3,6 @@ import { CreateMovementDto } from './dto/create-movement.dto';
 import { RejectDto } from './dto/update-movement.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import {
-  Details,
   HistoryValidation,
   Movement,
   Prisma,
@@ -12,7 +11,11 @@ import {
   Status,
   User,
 } from '@prisma/client';
-import { DetailsWithStock, MovementDetails } from './details.interface';
+import {
+  DetailsNotDelivered,
+  DetailsWithStock,
+  MovementDetails,
+} from './details.interface';
 import { IHistoryValidation } from './historyValidation.interface';
 import Helper from '../utils/helper';
 import { MESSAGE, STATUS } from '../utils/constant';
@@ -72,7 +75,7 @@ export class MovementService {
     movement: Movement,
   ): Promise<ExecuteResponse> {
     //Brows each item of details: MovementDetails[]
-    details.map(async (item: MovementDetails) => {
+    for (const item of details) {
       //findProduct
       const product: Product = await this.prisma.product.findUnique({
         where: {
@@ -108,8 +111,9 @@ export class MovementService {
           HttpStatus.CONFLICT,
         );
       }
+
       //Create new detail movement
-      const createDetail: Details = await this.prisma.details.create({
+      await this.prisma.details.create({
         data: {
           uuid: await this.helper.generateUuid(),
           movementId: movement.id,
@@ -117,16 +121,10 @@ export class MovementService {
           isUnitPrice: item.isUnitPrice,
           salesPriceId: productSalesPrice.id,
           quantity: item.quantity,
+          quantityDelivered: item.quantityDelivered,
         },
       });
-
-      if (!createDetail) {
-        throw new CustomException(
-          MESSAGE.ID_NOT_FOUND + 'during the creation of details movement',
-          HttpStatus.CONFLICT,
-        );
-      }
-    });
+    }
 
     return { message: MESSAGE.OK, statusCode: 200 };
   }
@@ -280,6 +278,27 @@ export class MovementService {
     `;
   }
 
+  async findAllDetailsMovementNotDelivered(
+    movementId: string,
+  ): Promise<DetailsNotDelivered[]> {
+    const findMovement: Movement = await this.findMovement(movementId);
+
+    return this.prisma.$queryRaw`
+      SELECT 
+        d.uuid AS detail_id,
+        p."uuid" AS product_id,
+        p.designation AS product_name,
+        COALESCE(d.quantity, 0) AS quantity,
+        COALESCE(d."quantityDelivered", 0) AS quantity_delivered
+    FROM "Details" d
+    LEFT JOIN "Product" p ON p.id = d."productId"
+    LEFT JOIN "Movement" m ON m.id = d."movementId"
+    WHERE d."movementId" = ${findMovement.id}
+    AND d."quantityDelivered" <> d.quantity 
+    ORDER BY p.designation ASC;
+    `;
+  }
+
   async updateDetailMovement(
     movementId: string,
     details: MovementDetails[],
@@ -307,12 +326,9 @@ export class MovementService {
         "Can't update an already rejected movement if you are an admin.",
         HttpStatus.NOT_ACCEPTABLE,
       );
-    } else if (
-      findStatusMovement.code === STATUS.VALIDATED ||
-      findStatusMovement.code === STATUS.COMPLETED
-    ) {
+    } else if (findStatusMovement.code === STATUS.COMPLETED) {
       throw new CustomException(
-        "Can't update an already validated or completed movement!",
+        "Can't update an already completed movement!",
         HttpStatus.NOT_ACCEPTABLE,
       );
     }
@@ -342,6 +358,33 @@ export class MovementService {
       message: `Update details of movement ${movementId} with success.`,
       statusCode: 200,
     };
+  }
+
+  async generateInvoice(
+    movementId: string,
+    details: MovementDetails[],
+    userConnect: User,
+  ) {
+    //Update details movement before the generating invoice
+    await this.updateDetailMovement(movementId, details, userConnect);
+
+    //Check if each details is already delivered (Quantity - Quantity delivered = 0)
+    //Then update movement status to COMPLETED
+    const isAllDetailsDelivered: DetailsNotDelivered[] =
+      await this.findAllDetailsMovementNotDelivered(movementId);
+    //When we don't get any result we can update the movement status to COMPLETED
+    if (!isAllDetailsDelivered) {
+      const statusCompleted = await this.prisma.status.findUnique({
+        where: { code: STATUS.COMPLETED },
+      });
+
+      const findMovement: Movement = await this.findMovement(movementId);
+
+      await this.prisma.movement.update({
+        where: { id: findMovement.id },
+        data: { statusId: statusCompleted.id },
+      });
+    }
   }
 
   async removeDetailsMovement(movementId: number): Promise<ExecuteResponse> {

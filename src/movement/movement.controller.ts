@@ -125,6 +125,28 @@ export class MovementController {
     }
   }
 
+  @UseGuards(AuthGuard)
+  @Patch(':uuid/generate_invoice')
+  async generateInvoice(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+    @Param('uuid') movementId: string,
+    @Body() updateDetailsDto: UpdateDetailsDto,
+    @Req() req: Request,
+  ): Promise<void> {
+    try {
+      const detailsMovement = await this.movementService.generateInvoice(
+        movementId,
+        updateDetailsDto.details,
+        req['user'],
+      );
+
+      res.status(HttpStatus.OK).json(detailsMovement);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   @UseGuards(AdminGuard)
   @Patch(':uuid/validate')
   async validateMovement(
