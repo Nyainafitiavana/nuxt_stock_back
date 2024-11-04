@@ -364,7 +364,7 @@ export class MovementService {
     movementId: string,
     details: MovementDetails[],
     userConnect: User,
-  ) {
+  ): Promise<ExecuteResponse> {
     //Update details movement before the generating invoice
     await this.updateDetailMovement(movementId, details, userConnect);
 
@@ -385,6 +385,11 @@ export class MovementService {
         data: { statusId: statusCompleted.id },
       });
     }
+
+    return {
+      message: `Update details of movement ${movementId} with success.`,
+      statusCode: 200,
+    };
   }
 
   async removeDetailsMovement(movementId: number): Promise<ExecuteResponse> {
