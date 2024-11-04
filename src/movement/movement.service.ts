@@ -21,12 +21,14 @@ import Helper from '../utils/helper';
 import { MESSAGE, STATUS } from '../utils/constant';
 import { CustomException } from '../utils/ExeptionCustom';
 import { ExecuteResponse, Paginate } from '../utils/custom.interface';
+import { PdfService } from '../pdf/pdf.service';
 
 @Injectable()
 export class MovementService {
   constructor(
     private prisma: PrismaService,
     private helper: Helper,
+    private pdfService: PdfService,
   ) {}
   async create(
     createMovementDto: CreateMovementDto,
@@ -212,7 +214,7 @@ export class MovementService {
     };
 
     if (limit && page) {
-      const offset: number = await this.helper.calculOffset(limit, page);
+      const offset: number = await this.helper.calculateOffset(limit, page);
       query.take = limit;
       query.skip = offset;
     }
@@ -364,7 +366,7 @@ export class MovementService {
     movementId: string,
     details: MovementDetails[],
     userConnect: User,
-  ): Promise<ExecuteResponse> {
+  ): Promise<{ url: string; buffer: Buffer }> {
     //Update details movement before the generating invoice
     await this.updateDetailMovement(movementId, details, userConnect);
 
@@ -386,10 +388,18 @@ export class MovementService {
       });
     }
 
-    return {
-      message: `Update details of movement ${movementId} with success.`,
-      statusCode: 200,
-    };
+    //Init pdf
+    return await this.initPdf(movementId, userConnect);
+  }
+
+  async initPdf(
+    movementId: string,
+    userConnect: User,
+  ): Promise<{ url: string }> {
+    const details: DetailsWithStock[] =
+      await this.findAllDetailsMovement(movementId);
+
+    return await this.pdfService.createPdfWithTable(`hello`, 'TICKET');
   }
 
   async removeDetailsMovement(movementId: number): Promise<ExecuteResponse> {

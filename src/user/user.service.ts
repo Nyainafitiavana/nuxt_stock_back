@@ -45,7 +45,7 @@ export class UserService {
     keyword: string,
     status: string,
   ): Promise<Paginate<User[]>> {
-    const offset: number = await this.helper.calculOffset(limit, page);
+    const offset: number = await this.helper.calculateOffset(limit, page);
 
     const query: Prisma.UserFindManyArgs = {
       take: limit,

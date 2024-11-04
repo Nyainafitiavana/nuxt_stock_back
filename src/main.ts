@@ -10,6 +10,13 @@ async function bootstrap() {
   };
 
   app.enableCors(corsOptions);
+
+  // Log incoming requests
+  app.use((req, res, next) => {
+    console.log(`Request URL: ${req.url}`);
+    next();
+  });
+
   await app.listen(3001);
 }
 bootstrap();

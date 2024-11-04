@@ -13,9 +13,16 @@ import { SettingsModule } from '../settings/settings.module';
 import { ExpenseTypeModule } from '../expense-type/expense-type.module';
 import { ExpensesModule } from '../expenses/expenses.module';
 import { CashRegisterModule } from '../cash-register/cash-register.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+import { PdfModule } from '../pdf/pdf.module';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'), // Correct path to public folder
+    }),
+    PdfModule,
     AuthModule,
     UserModule,
     PrismaModule,

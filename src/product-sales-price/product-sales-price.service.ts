@@ -100,7 +100,7 @@ export class ProductSalesPriceService {
     page: number = null,
     productId: string,
   ): Promise<Paginate<ProductSalesPrice[]>> {
-    const offset: number = await this.helper.calculOffset(limit, page);
+    const offset: number = await this.helper.calculateOffset(limit, page);
 
     const query: Prisma.ProductSalesPriceFindManyArgs = {
       take: limit,

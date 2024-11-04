@@ -62,7 +62,7 @@ export class CategoryService {
     };
 
     if (limit && page) {
-      const offset: number = await this.helper.calculOffset(limit, page);
+      const offset: number = await this.helper.calculateOffset(limit, page);
       query.take = limit;
       query.skip = offset;
     }

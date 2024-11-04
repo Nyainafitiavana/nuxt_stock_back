@@ -135,13 +135,16 @@ export class MovementController {
     @Req() req: Request,
   ): Promise<void> {
     try {
-      const detailsMovement = await this.movementService.generateInvoice(
+      const { url } = await this.movementService.generateInvoice(
         movementId,
         updateDetailsDto.details,
         req['user'],
       );
 
-      res.status(HttpStatus.OK).json(detailsMovement);
+      // Respond with the PDF URL and optionally the buffer as a base64 string
+      res.status(HttpStatus.OK).json({
+        url,
+      });
     } catch (error) {
       next(error);
     }

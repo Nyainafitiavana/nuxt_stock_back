@@ -1,11 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
+
 class Helper {
-  public calculOffset = async (
+  public calculateOffset = async (
     limit: number,
     page: number,
   ): Promise<number> => {
-    const offset: number = limit * (page - 1);
-    return offset;
+    return limit * (page - 1);
   };
 
   public getDateNowString = async (): Promise<string> => {
@@ -19,23 +19,17 @@ class Helper {
 
   public getYear = async (): Promise<string> => {
     const date: Date = new Date();
-    const year: string = date.toLocaleString('default', { year: 'numeric' });
-
-    return year;
+    return date.toLocaleString('default', { year: 'numeric' });
   };
 
   public getMonth = async (): Promise<string> => {
     const date: Date = new Date();
-    const month: string = date.toLocaleString('default', { month: '2-digit' });
-
-    return month;
+    return date.toLocaleString('default', { month: '2-digit' });
   };
 
   public getDay = async (): Promise<string> => {
     const date: Date = new Date();
-    const day: string = date.toLocaleString('default', { day: '2-digit' });
-
-    return day;
+    return date.toLocaleString('default', { day: '2-digit' });
   };
 
   public generateUuid = async (): Promise<string> => {
