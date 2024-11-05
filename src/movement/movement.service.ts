@@ -366,7 +366,7 @@ export class MovementService {
     movementId: string,
     details: MovementDetails[],
     userConnect: User,
-  ): Promise<{ url: string; buffer: Buffer }> {
+  ): Promise<{ url: string }> {
     //Update details movement before the generating invoice
     await this.updateDetailMovement(movementId, details, userConnect);
 
@@ -389,7 +389,7 @@ export class MovementService {
     }
 
     //Init pdf
-    return await this.initPdf(movementId, userConnect);
+    return this.initPdf(movementId, userConnect);
   }
 
   async initPdf(
@@ -399,7 +399,151 @@ export class MovementService {
     const details: DetailsWithStock[] =
       await this.findAllDetailsMovement(movementId);
 
-    return await this.pdfService.createPdfWithTable(`hello`, 'TICKET');
+    const html = `
+        <style>
+          body {
+              width: 80mm; /* Set width to match your PDF width */
+              height: 200mm;
+              font-family: Arial, "Roboto Light",serif;
+              font-size: 12px;
+              margin: 3px;
+              padding: 0;
+              overflow: hidden; /* Prevent overflow */
+          }
+          .head-invoice {
+            font-size: 10px;
+          }
+          .separate {
+              width: 50px;
+          }
+          .invoice-title {
+              font-weight: 600;
+          }
+          .invoice-number {
+              margin-left: 5px;
+          }
+          .company-name, .invoice-date {
+              font-weight: 600;
+          }
+    
+          .product-list-table {
+              margin-top: 10px;
+              width: 99%;
+              font-size: 11px;
+          }
+    
+          .product-list-table, .product-list-table th, .product-list-table td {
+              border: 1px solid black;
+              border-collapse: collapse;
+          }
+          .body-list {
+            font-size: 9px;
+          }
+          .price {
+              text-align: right;
+          }
+          .qt {
+              text-align: center;
+          }
+          .total {
+              margin-top: 5px;
+              font-size: 10px;
+          }
+          .legend {
+              margin-top: 5px;
+              font-size: 9px;
+          }
+          
+        </style>
+        <body>
+          <table>
+              <tbody>
+                <tr class="head-invoice">
+                  <td class="company-name">Ny Aina Company</td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-title">INVOICE</span>
+                    <span class="invoice-number">n°: F00005</span>
+                  </td>
+                </tr>
+                <tr class="head-invoice">
+                  <td>Imerintsiatosika</td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-date">Date :</span>
+                    <span class="invoice-number">05-11-2024</span>
+                  </td>
+                </tr>
+                <tr class="head-invoice">
+                  <td>+261342034890</td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-date">Client :</span>
+                    <span class="invoice-number">Rakoto</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <table class="product-list-table">
+              <thead class="head-invoice">
+                <tr>
+                  <th>Designation</th>
+                  <th>S.P (MGA)</th>
+                  <th>O.Qt</th>
+                  <th>Dlv</th>
+                  <th>RM</th>
+                  <th>Total (MGA)</th>
+                </tr>
+              </thead>
+              <tbody class="body-list">
+                <tr>
+                  <td>Miame</td>
+                  <td class="price">600.00</td>
+                  <td class="qt">5</td>
+                  <td class="qt">5</td>
+                  <td class="qt">0</td>
+                  <td class="price">3000.00</td>
+                </tr>
+                <tr>
+                  <td>Chocolat Robert</td>
+                  <td class="price">5000.00</td>
+                  <td class="qt">2</td>
+                  <td class="qt">2</td>
+                  <td class="qt">0</td>
+                  <td class="price">10 000.00</td>
+                </tr>
+                <tr>
+                  <td>Chocolat Robert</td>
+                  <td class="price">5000.00</td>
+                  <td class="qt">50</td>
+                  <td class="qt">25</td>
+                  <td class="qt">25</td>
+                  <td class="price">125 000.00</td>
+                </tr>
+              </tbody>
+            </table>
+            <table class="total">
+              <tr>
+                <th>Total : </th>
+                <td>138 000.00 MGA</td>
+              </tr>
+            </table>
+            <table class="legend">
+              <tr >
+                <th>S.P: </th>
+                <td>Sales price /</td>
+                <th>O.Qt: </th>
+                <td>order quantity /</td>
+                <th>Dlv: </th>
+                <td>Delivered /</td>
+                <th>RM: </th>
+                <td>Remain</td>
+              </tr>
+            </table>
+        </body>
+    `;
+
+    return await this.pdfService.createPdfWithTable(html, 'TICKET');
   }
 
   async removeDetailsMovement(movementId: number): Promise<ExecuteResponse> {

@@ -17,12 +17,19 @@ export class PdfService {
       printBackground: true,
     };
 
-    // Set standard or custom dimensions
-    if (format === 'A4') {
-      options.format = 'A4';
-    } else if (format === 'TICKET') {
-      options.width = '2.75in';
-      options.height = '8.5in';
+    // Set custom dimensions for TICKET format
+    if (format === 'TICKET') {
+      // Use specific dimensions for ticket format
+      options.width = '80mm'; // Width of 80mm
+      options.height = '200mm'; // Height of 200mm
+      options.margin = {
+        top: '0mm',
+        bottom: '0mm',
+        left: '0mm',
+        right: '0mm',
+      }; // Set margins to 0 if needed
+    } else if (format === 'A4') {
+      options.format = 'A4'; // Keep A4 for A4 format
     }
 
     const browser = await puppeteer.launch({
@@ -30,7 +37,10 @@ export class PdfService {
     });
     const page = await browser.newPage();
 
-    await page.setContent(htmlContent);
+    // Set the viewport to ensure proper rendering
+    await page.setViewport({ width: 800, height: 2000 });
+
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     await page.pdf(options);
 
     await browser.close();
