@@ -14,6 +14,7 @@ export interface IInvoiceData {
   details: DetailsWithStock[];
   amountPaid: number;
   language: 'FR' | 'ENG';
+  format: 'TICKET' | 'A4';
 }
 
 export interface DetailsWithStock {

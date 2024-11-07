@@ -1,4 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
+import { DetailsWithStock, IInvoiceData } from '../movement/details.interface';
+import { Settings, User } from '@prisma/client';
 
 class Helper {
   public calculateOffset = async (
@@ -82,6 +84,300 @@ class Helper {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(price);
+  };
+
+  public ticketPdfTemplate = async (
+    userConnect: User,
+    invoiceData: IInvoiceData,
+    appSetting: Settings,
+  ): Promise<string> => {
+    return `
+        <style>
+          body {
+              width: 80mm; /* Set width to match your PDF width */
+              height: 200mm;
+              font-family: Arial, "Roboto Light",serif;
+              font-size: 12px;
+              margin: 3px;
+              padding: 0;
+              overflow: hidden; /* Prevent overflow */
+          }
+          .head-invoice {
+            font-size: 10px;
+          }
+          .separate {
+              width: 30px;
+          }
+          .invoice-title {
+              font-weight: 600;
+          }
+          .invoice-number {
+              margin-left: 5px;
+          }
+          .company-name, .invoice-date {
+              font-weight: 600;
+          }
+    
+          .product-list-table {
+              margin-top: 10px;
+              width: 99%;
+              font-size: 11px;
+          }
+    
+          .product-list-table, .product-list-table th, .product-list-table td {
+              border: 1px solid black;
+              border-collapse: collapse;
+          }
+          .body-list {
+            font-size: 9px;
+          }
+          .price {
+              text-align: right;
+          }
+          .qt {
+              text-align: center;
+          }
+          .total {
+              margin-top: 5px;
+              font-size: 10px;
+          }
+          .legend {
+              margin-top: 5px;
+              font-size: 9px;
+          }
+          
+        </style>
+        <body>
+            <table>
+              <tbody>
+                <tr class="head-invoice">
+                  <td class="company-name">${appSetting.companyName}</td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-title">${invoiceData.language === 'ENG' ? 'INVOICE' : 'FACTURE'}</span>
+                    <span class="invoice-number">n°: F00005</span>
+                  </td>
+                </tr>
+                <tr class="head-invoice">
+                  <td>${appSetting.companyAddress}</td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-date">Date :</span>
+                    <span class="invoice-number">${await this.getDateNowString()}</span>
+                  </td>
+                </tr>
+                <tr class="head-invoice">
+                  <td>${appSetting.companyPhoneNumber}</td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-date">Client :</span>
+                    <span class="invoice-number">Rakoto</span>
+                  </td>
+                </tr>
+                <tr class="head-invoice">
+                  <td></td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-date">${invoiceData.language === 'ENG' ? 'Editor' : 'Editeur'} :</span>
+                    <span class="invoice-number"> ${userConnect.lastName} ${userConnect.firstName}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <table class="product-list-table">
+              <thead class="head-invoice">
+                <tr>
+                  <th>${invoiceData.language === 'ENG' ? 'Designation' : 'Désignation'}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'S.P' : 'P.V'} ${appSetting.currencyType}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'Qt.O' : 'Qt.C'}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'DLV' : 'LV'}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'RM' : 'RTL'}</th>
+                  <th>Total ${appSetting.currencyType}</th>
+                </tr>
+              </thead>
+              <tbody class="body-list">
+                ${invoiceData.details
+                  .map(
+                    (item: DetailsWithStock) => `
+                      <tr>
+                        <td>${item.product_name}</td>
+                        <td class="price">${item.is_unit_price ? this.formatPrice(item.unit_price) : this.formatPrice(item.wholesale_price)}</td>
+                        <td class="qt">${item.quantity}</td>
+                        <td class="qt">${item.quantity_delivered}</td>
+                        <td class="qt">${item.quantity - item.quantity_delivered}</td>
+                        <td class="price">${item.is_unit_price ? this.formatPrice(item.unit_price * item.quantity_delivered) : this.formatPrice(item.wholesale_price * item.quantity_delivered)}</td>
+                      </tr>
+                    `,
+                  )
+                  .join('')}
+              </tbody>
+            </table>
+            <table class="total">
+              <tr>
+                <th>Total : </th>
+                <td>${this.formatPrice(invoiceData.amountPaid)} ${appSetting.currencyType}</td>
+              </tr>
+            </table>
+            <table class="legend">
+              <tr >
+                <th>${invoiceData.language === 'ENG' ? 'S.P' : 'P.V'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Sales price' : 'Prix de vente'} </td>
+                <th>${invoiceData.language === 'ENG' ? 'Qt.O' : 'Qt.D'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Quantity ordered' : 'Quantité commandée'} </td>
+                <th>${invoiceData.language === 'ENG' ? 'DLV' : 'LV'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Delivered' : 'Livré'} </td>
+                <th>${invoiceData.language === 'ENG' ? 'RM' : 'RTL'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Remaining' : 'Reste'}</td>
+              </tr>
+            </table>
+        </body>
+    `;
+  };
+
+  public a4PdfTemplate = async (
+    userConnect: User,
+    invoiceData: IInvoiceData,
+    appSetting: Settings,
+  ): Promise<string> => {
+    return `
+        <style>
+          body {
+              font-family: Arial, "Roboto Light",serif;
+              font-size: 12px;
+              margin: 3px;
+              padding: 0;
+              overflow: hidden; /* Prevent overflow */
+          }
+          .head-invoice {
+            font-size: 10px;
+          }
+          .separate {
+              width: 30px;
+          }
+          .invoice-title {
+              font-weight: 600;
+          }
+          .invoice-number {
+              margin-left: 5px;
+          }
+          .company-name, .invoice-date {
+              font-weight: 600;
+          }
+    
+          .product-list-table {
+              margin-top: 10px;
+              width: 99%;
+              font-size: 11px;
+          }
+    
+          .product-list-table, .product-list-table th, .product-list-table td {
+              border: 1px solid black;
+              border-collapse: collapse;
+          }
+          .body-list {
+            font-size: 9px;
+          }
+          .price {
+              text-align: right;
+          }
+          .qt {
+              text-align: center;
+          }
+          .total {
+              margin-top: 5px;
+              font-size: 10px;
+          }
+          .legend {
+              margin-top: 5px;
+              font-size: 9px;
+          }
+          
+        </style>
+        <body>
+            <table>
+              <tbody>
+                <tr class="head-invoice">
+                  <td class="company-name">${appSetting.companyName}</td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-title">${invoiceData.language === 'ENG' ? 'INVOICE' : 'FACTURE'}</span>
+                    <span class="invoice-number">n°: F00005</span>
+                  </td>
+                </tr>
+                <tr class="head-invoice">
+                  <td>${appSetting.companyAddress}</td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-date">Date :</span>
+                    <span class="invoice-number">${await this.getDateNowString()}</span>
+                  </td>
+                </tr>
+                <tr class="head-invoice">
+                  <td>${appSetting.companyPhoneNumber}</td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-date">Client :</span>
+                    <span class="invoice-number">Rakoto</span>
+                  </td>
+                </tr>
+                <tr class="head-invoice">
+                  <td></td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-date">${invoiceData.language === 'ENG' ? 'Editor' : 'Editeur'} :</span>
+                    <span class="invoice-number"> ${userConnect.lastName} ${userConnect.firstName}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <table class="product-list-table">
+              <thead class="head-invoice">
+                <tr>
+                  <th>${invoiceData.language === 'ENG' ? 'Designation' : 'Désignation'}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'S.P' : 'P.V'} ${appSetting.currencyType}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'Qt.O' : 'Qt.C'}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'DLV' : 'LV'}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'RM' : 'RTL'}</th>
+                  <th>Total ${appSetting.currencyType}</th>
+                </tr>
+              </thead>
+              <tbody class="body-list">
+                ${invoiceData.details
+                  .map(
+                    (item: DetailsWithStock) => `
+                      <tr>
+                        <td>${item.product_name}</td>
+                        <td class="price">${item.is_unit_price ? this.formatPrice(item.unit_price) : this.formatPrice(item.wholesale_price)}</td>
+                        <td class="qt">${item.quantity}</td>
+                        <td class="qt">${item.quantity_delivered}</td>
+                        <td class="qt">${item.quantity - item.quantity_delivered}</td>
+                        <td class="price">${item.is_unit_price ? this.formatPrice(item.unit_price * item.quantity_delivered) : this.formatPrice(item.wholesale_price * item.quantity_delivered)}</td>
+                      </tr>
+                    `,
+                  )
+                  .join('')}
+              </tbody>
+            </table>
+            <table class="total">
+              <tr>
+                <th>Total : </th>
+                <td>${this.formatPrice(invoiceData.amountPaid)} ${appSetting.currencyType}</td>
+              </tr>
+            </table>
+            <table class="legend">
+              <tr >
+                <th>${invoiceData.language === 'ENG' ? 'S.P' : 'P.V'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Sales price' : 'Prix de vente'} </td>
+                <th>${invoiceData.language === 'ENG' ? 'Qt.O' : 'Qt.D'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Quantity ordered' : 'Quantité commandée'} </td>
+                <th>${invoiceData.language === 'ENG' ? 'DLV' : 'LV'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Delivered' : 'Livré'} </td>
+                <th>${invoiceData.language === 'ENG' ? 'RM' : 'RTL'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Remaining' : 'Reste'}</td>
+              </tr>
+            </table>
+        </body>
+    `;
   };
 }
 export default Helper;
