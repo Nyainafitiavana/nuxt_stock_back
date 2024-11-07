@@ -59,7 +59,7 @@ export class PdfService {
     await browser.close();
 
     return {
-      url: `/api/pdf/${fileName}`,
+      url: `/api/invoice/pdf/${fileName}`,
     };
   }
 
