@@ -1,9 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import * as path from 'path';
 import puppeteer, { PDFOptions } from 'puppeteer';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceData } from './invoice.interface';
 import Helper from '../utils/helper';
+import { Paginate } from '../utils/custom.interface';
+import { Invoice, Movement, Prisma } from '@prisma/client';
+import { CustomException } from '../utils/ExeptionCustom';
+import { MESSAGE } from '../utils/constant';
 
 @Injectable()
 export class PdfService {
@@ -102,5 +106,56 @@ export class PdfService {
     });
 
     return nextRef;
+  }
+
+  async findAllInvoice(
+    limit: number = null,
+    page: number = null,
+    movementId: string,
+  ): Promise<Paginate<Invoice[]>> {
+    const findMovement: Movement = await this.prisma.movement.findUnique({
+      where: { uuid: movementId },
+    });
+
+    if (!findMovement) {
+      throw new CustomException(
+        'Movement_' + MESSAGE.ID_NOT_FOUND,
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    const query: Prisma.InvoiceFindManyArgs = {
+      where: {
+        movementId: findMovement.id,
+      },
+      select: {
+        uuid: true,
+        reference: true,
+        clientName: true,
+        editor: {
+          select: {
+            uuid: true,
+            lastName: true,
+            firstName: true,
+          },
+        },
+        createdAt: true,
+        fileName: true,
+      },
+      orderBy: [{ reference: 'desc' }],
+    };
+
+    if (limit && page) {
+      const offset: number = await this.helper.calculateOffset(limit, page);
+      query.take = limit;
+      query.skip = offset;
+    }
+
+    const [data, count] = await this.prisma.$transaction([
+      this.prisma.invoice.findMany(query),
+      this.prisma.invoice.count({ where: query.where }),
+    ]);
+
+    return { data: data, totalRows: count, page: page };
   }
 }
