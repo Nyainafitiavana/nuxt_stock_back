@@ -38,6 +38,7 @@ model User {
   validatedMouvements HistoryValidation[] @relation("Validator")
   editedMouvements    Movement[]          @relation("Editor")
   status              Status              @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  invoices            Invoice[]           @relation("Editor")
 }
 
 model Product {
@@ -102,6 +103,7 @@ model Movement {
   statusId          Int
   isSales           Boolean
   details           Details[]
+  invoice           Invoice[]
   historyValidation HistoryValidation[]
   editor            User                @relation("Editor", fields: [editorId], references: [id], onDelete: Cascade)
   status            Status              @relation(fields: [statusId], references: [id], onDelete: Cascade)
@@ -148,8 +150,8 @@ model Settings {
 }
 
 model ExpenseType {
-  id          Int      @id @default(autoincrement())
-  uuid        String   @unique
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique
   designation String
   statusId    Int
   createdAt   DateTime  @default(now())
@@ -159,14 +161,27 @@ model ExpenseType {
 }
 
 model Expenses {
-  id             Int      @id @default(autoincrement())
-  uuid           String   @unique
+  id             Int            @id @default(autoincrement())
+  uuid           String         @unique
   expenseTypeId  Int
   description    String?
   amount         Float
   statusId       Int
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   expenseType    ExpenseType    @relation(fields: [expenseTypeId], references: [id], onDelete: Cascade)
-  status         Status    @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  status         Status         @relation(fields: [statusId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id             Int      @id @default(autoincrement())
+  uuid           String   @unique
+  reference      String
+  movementId     Int
+  editorId       Int
+  clientName     String?
+  createdAt      DateTime @default(now())
+  editor         User     @relation("Editor", fields: [editorId], references: [id], onDelete: Cascade)
+  movement       Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  fileName       String   @unique
 }

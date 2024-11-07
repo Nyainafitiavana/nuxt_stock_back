@@ -13,7 +13,6 @@ import {
   User,
 } from '@prisma/client';
 import {
-  DetailsNotDelivered,
   DetailsWithStock,
   IInvoiceData,
   IInvoicePayload,
@@ -25,6 +24,7 @@ import { MESSAGE, STATUS } from '../utils/constant';
 import { CustomException } from '../utils/ExeptionCustom';
 import { ExecuteResponse, Paginate } from '../utils/custom.interface';
 import { PdfService } from '../pdf/pdf.service';
+import { InvoiceData } from '../pdf/invoice.interface';
 
 @Injectable()
 export class MovementService {
@@ -283,27 +283,6 @@ export class MovementService {
     `;
   }
 
-  async findAllDetailsMovementNotDelivered(
-    movementId: string,
-  ): Promise<DetailsNotDelivered[]> {
-    const findMovement: Movement = await this.findMovement(movementId);
-
-    return this.prisma.$queryRaw`
-      SELECT 
-        d.uuid AS detail_id,
-        p."uuid" AS product_id,
-        p.designation AS product_name,
-        COALESCE(d.quantity, 0) AS quantity,
-        COALESCE(d."quantityDelivered", 0) AS quantity_delivered
-    FROM "Details" d
-    LEFT JOIN "Product" p ON p.id = d."productId"
-    LEFT JOIN "Movement" m ON m.id = d."movementId"
-    WHERE d."movementId" = ${findMovement.id}
-    AND d."quantityDelivered" <> d.quantity 
-    ORDER BY p.designation ASC;
-    `;
-  }
-
   async updateDetailMovement(
     movementId: string,
     details: MovementDetails[],
@@ -408,7 +387,22 @@ export class MovementService {
     userConnect: User,
     invoiceData: IInvoiceData,
   ): Promise<{ url: string }> {
+    //get info in app setting
     const appSetting: Settings = await this.prisma.settings.findFirst();
+
+    const dataInsertInvoice: InvoiceData = {
+      editorId: userConnect.id,
+      movementId: movementId,
+      clientName: invoiceData.client,
+    };
+    //We can get the file name provided of the new invoice reference
+    const fileNameByInsertInvoice: string = await this.pdfService.createInvoice(
+      dataInsertInvoice,
+      invoiceData.language,
+    );
+
+    invoiceData.reference = fileNameByInsertInvoice;
+
     //Call function options
     const templateFunction =
       invoiceData.format === 'TICKET'
@@ -421,7 +415,11 @@ export class MovementService {
       appSetting,
     );
 
-    return await this.pdfService.createPdfWithTable(html, invoiceData.format);
+    return await this.pdfService.createPdfWithTable(
+      html,
+      invoiceData.format,
+      `${fileNameByInsertInvoice}.pdf`,
+    );
   }
 
   async removeDetailsMovement(movementId: number): Promise<ExecuteResponse> {

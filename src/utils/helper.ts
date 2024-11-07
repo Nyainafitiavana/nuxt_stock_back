@@ -155,7 +155,7 @@ class Helper {
                   <td class="separate"></td>
                   <td>
                     <span class="invoice-title">${invoiceData.language === 'ENG' ? 'INVOICE' : 'FACTURE'}</span>
-                    <span class="invoice-number">n°: F00005</span>
+                    <span class="invoice-number">n°: ${invoiceData.reference}</span>
                   </td>
                 </tr>
                 <tr class="head-invoice">
@@ -171,7 +171,7 @@ class Helper {
                   <td class="separate"></td>
                   <td>
                     <span class="invoice-date">Client :</span>
-                    <span class="invoice-number">Rakoto</span>
+                    <span class="invoice-number">${invoiceData.client}</span>
                   </td>
                 </tr>
                 <tr class="head-invoice">
@@ -301,7 +301,7 @@ class Helper {
                   <td class="separate"></td>
                   <td>
                     <span class="invoice-title">${invoiceData.language === 'ENG' ? 'INVOICE' : 'FACTURE'}</span>
-                    <span class="invoice-number">n°: F00005</span>
+                    <span class="invoice-number">n°: ${invoiceData.reference}</span>
                   </td>
                 </tr>
                 <tr class="head-invoice">
@@ -317,7 +317,7 @@ class Helper {
                   <td class="separate"></td>
                   <td>
                     <span class="invoice-date">Client :</span>
-                    <span class="invoice-number">Rakoto</span>
+                    <span class="invoice-number">${invoiceData.client}</span>
                   </td>
                 </tr>
                 <tr class="head-invoice">

@@ -1,15 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import * as path from 'path';
 import puppeteer, { PDFOptions } from 'puppeteer';
+import { PrismaService } from '../prisma/prisma.service';
+import { InvoiceData } from './invoice.interface';
+import Helper from '../utils/helper';
 
 @Injectable()
 export class PdfService {
+  constructor(
+    private prisma: PrismaService,
+    private helper: Helper,
+  ) {}
+
   async createPdfWithTable(
     htmlContent: string,
     format: 'A4' | 'TICKET',
+    fileName: string,
   ): Promise<{ url: string }> {
     // Define the path to the PDF file in the public directory
-    const pdfPath = path.join(process.cwd(), 'public', 'generated.pdf');
+    const pdfPath = path.join(process.cwd(), 'public', `${fileName}`);
 
     // Define PDF options based on format
     const options: PDFOptions = {
@@ -46,7 +55,52 @@ export class PdfService {
     await browser.close();
 
     return {
-      url: `/api/pdf/generated.pdf`,
+      url: `/api/pdf/${fileName}`,
     };
+  }
+
+  async generateNextInvoiceRef(language: string): Promise<string> {
+    // Set prefix based on language
+    const prefix = language === 'ENG' ? 'INV' : 'FACT';
+
+    // Fetch the highest reference with the current prefix in the invoices table
+    const lastInvoice = await this.prisma.invoice.findFirst({
+      where: {
+        reference: {
+          startsWith: prefix, // Only get references starting with the correct prefix
+        },
+      },
+      orderBy: {
+        reference: 'desc',
+      },
+    });
+
+    // Initialize the next reference
+    let nextRef = `${prefix}-001`;
+    if (lastInvoice) {
+      // Extract the numeric part of the reference (e.g., "009" from "INV-009")
+      const lastRefNumber = parseInt(lastInvoice.reference.split('-')[1], 10);
+
+      // Increment the number and format with leading zeros
+      const newRefNumber = (lastRefNumber + 1).toString().padStart(3, '0');
+      nextRef = `${prefix}-${newRefNumber}`;
+    }
+
+    return nextRef;
+  }
+
+  async createInvoice(data: InvoiceData, language: string): Promise<string> {
+    const nextRef = await this.generateNextInvoiceRef(language);
+
+    await this.prisma.invoice.create({
+      data: {
+        reference: nextRef,
+        uuid: await this.helper.generateUuid(),
+        ...data,
+        fileName: `${nextRef}.pdf`,
+      },
+    });
+
+    return nextRef;
   }
 }
