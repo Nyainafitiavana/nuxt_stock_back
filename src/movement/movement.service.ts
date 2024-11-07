@@ -8,12 +8,15 @@ import {
   Prisma,
   Product,
   ProductSalesPrice,
+  Settings,
   Status,
   User,
 } from '@prisma/client';
 import {
   DetailsNotDelivered,
   DetailsWithStock,
+  IInvoiceData,
+  IInvoicePayload,
   MovementDetails,
 } from './details.interface';
 import { IHistoryValidation } from './historyValidation.interface';
@@ -364,11 +367,17 @@ export class MovementService {
 
   async generateInvoice(
     movementId: string,
-    details: MovementDetails[],
+    invoicePayloads: IInvoicePayload,
     userConnect: User,
   ): Promise<{ url: string }> {
+    const findMovement: Movement = await this.findMovement(movementId);
     //Update details movement before the generating invoice
-    await this.updateDetailMovement(movementId, details, userConnect);
+    /*
+    await this.updateDetailMovement(
+      movementId,
+      invoicePayloads.details,
+      userConnect,
+    );
 
     //Check if each details is already delivered (Quantity - Quantity delivered = 0)
     //Then update movement status to COMPLETED
@@ -380,24 +389,26 @@ export class MovementService {
         where: { code: STATUS.COMPLETED },
       });
 
-      const findMovement: Movement = await this.findMovement(movementId);
-
       await this.prisma.movement.update({
         where: { id: findMovement.id },
         data: { statusId: statusCompleted.id },
       });
-    }
+    }*/
 
     //Init pdf
-    return this.initPdf(movementId, userConnect);
+    return this.initPdf(
+      findMovement.id,
+      userConnect,
+      invoicePayloads.invoiceData,
+    );
   }
 
   async initPdf(
-    movementId: string,
+    movementId: number,
     userConnect: User,
+    invoiceData: IInvoiceData,
   ): Promise<{ url: string }> {
-    const details: DetailsWithStock[] =
-      await this.findAllDetailsMovement(movementId);
+    const appSetting: Settings = await this.prisma.settings.findFirst();
 
     const html = `
         <style>
@@ -414,7 +425,7 @@ export class MovementService {
             font-size: 10px;
           }
           .separate {
-              width: 50px;
+              width: 30px;
           }
           .invoice-title {
               font-weight: 600;
@@ -456,30 +467,38 @@ export class MovementService {
           
         </style>
         <body>
-          <table>
+            <table>
               <tbody>
                 <tr class="head-invoice">
-                  <td class="company-name">Ny Aina Company</td>
+                  <td class="company-name">${appSetting.companyName}</td>
                   <td class="separate"></td>
                   <td>
-                    <span class="invoice-title">INVOICE</span>
+                    <span class="invoice-title">${invoiceData.language === 'ENG' ? 'INVOICE' : 'FACTURE'}</span>
                     <span class="invoice-number">n°: F00005</span>
                   </td>
                 </tr>
                 <tr class="head-invoice">
-                  <td>Imerintsiatosika</td>
+                  <td>${appSetting.companyAddress}</td>
                   <td class="separate"></td>
                   <td>
                     <span class="invoice-date">Date :</span>
-                    <span class="invoice-number">05-11-2024</span>
+                    <span class="invoice-number">${await this.helper.getDateNowString()}</span>
                   </td>
                 </tr>
                 <tr class="head-invoice">
-                  <td>+261342034890</td>
+                  <td>${appSetting.companyPhoneNumber}</td>
                   <td class="separate"></td>
                   <td>
                     <span class="invoice-date">Client :</span>
                     <span class="invoice-number">Rakoto</span>
+                  </td>
+                </tr>
+                <tr class="head-invoice">
+                  <td></td>
+                  <td class="separate"></td>
+                  <td>
+                    <span class="invoice-date">${invoiceData.language === 'ENG' ? 'Editor' : 'Editeur'} :</span>
+                    <span class="invoice-number"> ${userConnect.lastName} ${userConnect.firstName}</span>
                   </td>
                 </tr>
               </tbody>
@@ -487,57 +506,47 @@ export class MovementService {
             <table class="product-list-table">
               <thead class="head-invoice">
                 <tr>
-                  <th>Designation</th>
-                  <th>S.P (MGA)</th>
-                  <th>O.Qt</th>
-                  <th>Dlv</th>
-                  <th>RM</th>
-                  <th>Total (MGA)</th>
+                  <th>${invoiceData.language === 'ENG' ? 'Designation' : 'Désignation'}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'S.P' : 'P.V'} ${appSetting.currencyType}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'Qt.O' : 'Qt.C'}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'DLV' : 'LV'}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'RM' : 'RTL'}</th>
+                  <th>Total ${appSetting.currencyType}</th>
                 </tr>
               </thead>
               <tbody class="body-list">
-                <tr>
-                  <td>Miame</td>
-                  <td class="price">600.00</td>
-                  <td class="qt">5</td>
-                  <td class="qt">5</td>
-                  <td class="qt">0</td>
-                  <td class="price">3000.00</td>
-                </tr>
-                <tr>
-                  <td>Chocolat Robert</td>
-                  <td class="price">5000.00</td>
-                  <td class="qt">2</td>
-                  <td class="qt">2</td>
-                  <td class="qt">0</td>
-                  <td class="price">10 000.00</td>
-                </tr>
-                <tr>
-                  <td>Chocolat Robert</td>
-                  <td class="price">5000.00</td>
-                  <td class="qt">50</td>
-                  <td class="qt">25</td>
-                  <td class="qt">25</td>
-                  <td class="price">125 000.00</td>
-                </tr>
+                ${invoiceData.details
+                  .map(
+                    (item: DetailsWithStock) => `
+                      <tr>
+                        <td>${item.product_name}</td>
+                        <td class="price">${item.is_unit_price ? this.helper.formatPrice(item.unit_price) : this.helper.formatPrice(item.wholesale_price)}</td>
+                        <td class="qt">${item.quantity}</td>
+                        <td class="qt">${item.quantity_delivered}</td>
+                        <td class="qt">${item.quantity - item.quantity_delivered}</td>
+                        <td class="price">${item.is_unit_price ? this.helper.formatPrice(item.unit_price * item.quantity_delivered) : this.helper.formatPrice(item.wholesale_price * item.quantity_delivered)}</td>
+                      </tr>
+                    `,
+                  )
+                  .join('')}
               </tbody>
             </table>
             <table class="total">
               <tr>
                 <th>Total : </th>
-                <td>138 000.00 MGA</td>
+                <td>${this.helper.formatPrice(invoiceData.amountPaid)} ${appSetting.currencyType}</td>
               </tr>
             </table>
             <table class="legend">
               <tr >
-                <th>S.P: </th>
-                <td>Sales price /</td>
-                <th>O.Qt: </th>
-                <td>order quantity /</td>
-                <th>Dlv: </th>
-                <td>Delivered /</td>
-                <th>RM: </th>
-                <td>Remain</td>
+                <th>${invoiceData.language === 'ENG' ? 'S.P' : 'P.V'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Sales price' : 'Prix de vente'} /</td>
+                <th>${invoiceData.language === 'ENG' ? 'Qt.O' : 'Qt.D'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Quantity ordered' : 'Quantité commandée'} /</td>
+                <th>${invoiceData.language === 'ENG' ? 'DLV' : 'LV'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Delivered' : 'Livré'} /</td>
+                <th>${invoiceData.language === 'ENG' ? 'RM' : 'RTL'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Remaining' : 'Reste'}</td>
               </tr>
             </table>
         </body>

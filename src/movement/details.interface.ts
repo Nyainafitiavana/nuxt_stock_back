@@ -5,6 +5,17 @@ export interface MovementDetails {
   quantityDelivered?: number;
 }
 
+export interface IInvoicePayload {
+  details: MovementDetails[];
+  invoiceData: IInvoiceData;
+}
+
+export interface IInvoiceData {
+  details: DetailsWithStock[];
+  amountPaid: number;
+  language: 'FR' | 'ENG';
+}
+
 export interface DetailsWithStock {
   detail_id: string;
   product_id: string;
