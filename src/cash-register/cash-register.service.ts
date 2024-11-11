@@ -522,7 +522,7 @@ export class CashRegisterService {
       SELECT 
           wd.day AS x_series,
           case when m.total_purchase_amount is null and m.total_sales_amount is null and e.total_expenses_amount is null then 0 else
-          (ic.initial_cash + COALESCE(m.total_sales_amount, 0) - COALESCE(m.total_purchase_amount, 0) - COALESCE(e.total_expenses_amount, 0)) end AS revenue
+          (COALESCE(m.total_sales_amount, 0) - COALESCE(m.total_purchase_amount, 0) - COALESCE(e.total_expenses_amount, 0)) end AS revenue
       FROM week_days wd
       LEFT JOIN movement_data m ON wd.day = m.x_series
       LEFT JOIN expenses_data e ON wd.day = e.x_series
@@ -592,7 +592,7 @@ export class CashRegisterService {
       SELECT 
           mn.month_name AS x_series,
         case when mmd.total_purchase_amount is null and mmd.total_sales_amount is null and me.total_expenses_amount is null then 0 else
-          (ic.initial_cash + COALESCE(mmd.total_sales_amount, 0) - COALESCE(mmd.total_purchase_amount, 0) - COALESCE(me.total_expenses_amount, 0)) end AS revenue
+          (COALESCE(mmd.total_sales_amount, 0) - COALESCE(mmd.total_purchase_amount, 0) - COALESCE(me.total_expenses_amount, 0)) end AS revenue
       FROM year_months ym
       JOIN month_names mn ON ym.month_number = mn.month_number
       LEFT JOIN monthly_movement_data mmd ON ym.month_number = mmd.month_number
@@ -642,14 +642,8 @@ export class CashRegisterService {
       )
       SELECT 
           y.year as x_series,
-          COALESCE(
-            ( 
-              COALESCE((ic.initial_cash + ymd.total_sales_amount), 0) -
-              COALESCE((ymd.total_purchase_amount + ye.total_expenses_amount), 0)
-            ), 0
-          ) AS revenue
         case when ymd.total_purchase_amount is null and ymd.total_sales_amount is null and ye.total_expenses_amount is null then 0 else
-          (ic.initial_cash + COALESCE(ymd.total_sales_amount, 0) - COALESCE(ymd.total_purchase_amount, 0) - COALESCE(ye.total_expenses_amount, 0)) end AS revenue
+          (COALESCE(ymd.total_sales_amount, 0) - COALESCE(ymd.total_purchase_amount, 0) - COALESCE(ye.total_expenses_amount, 0)) end AS revenue
       FROM years y
       LEFT JOIN yearly_expenses_data ye ON y.year = ye.year
       LEFT JOIN yearly_movement_data ymd ON y.year = ymd.year
