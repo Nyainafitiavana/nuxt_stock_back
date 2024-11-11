@@ -13,6 +13,7 @@ import {
   User,
 } from '@prisma/client';
 import {
+  DetailsNotDelivered,
   DetailsWithStock,
   IInvoiceData,
   IInvoicePayload,
@@ -351,7 +352,6 @@ export class MovementService {
   ): Promise<{ url: string }> {
     const findMovement: Movement = await this.findMovement(movementId);
     //Update details movement before the generating invoice
-    /*
     await this.updateDetailMovement(
       movementId,
       invoicePayloads.details,
@@ -361,9 +361,9 @@ export class MovementService {
     //Check if each details is already delivered (Quantity - Quantity delivered = 0)
     //Then update movement status to COMPLETED
     const isAllDetailsDelivered: DetailsNotDelivered[] =
-      await this.findAllDetailsMovementNotDelivered(movementId);
+      await this.findAllDetailsMovementNotDelivered(findMovement.id);
     //When we don't get any result we can update the movement status to COMPLETED
-    if (!isAllDetailsDelivered) {
+    if (isAllDetailsDelivered.length === 0) {
       const statusCompleted = await this.prisma.status.findUnique({
         where: { code: STATUS.COMPLETED },
       });
@@ -372,14 +372,33 @@ export class MovementService {
         where: { id: findMovement.id },
         data: { statusId: statusCompleted.id },
       });
-    }*/
+    }
 
     //Init pdf
-    return this.initPdf(
+    return await this.initPdf(
       findMovement.id,
       userConnect,
       invoicePayloads.invoiceData,
     );
+  }
+
+  async findAllDetailsMovementNotDelivered(
+    movementId: number,
+  ): Promise<DetailsNotDelivered[]> {
+    return this.prisma.$queryRaw`
+      SELECT 
+        d.uuid AS detail_id,
+        p."uuid" AS product_id,
+        p.designation AS product_name,
+        COALESCE(d.quantity, 0) AS quantity,
+        COALESCE(d."quantityDelivered", 0) AS quantity_delivered
+      FROM "Details" d
+      JOIN "Product" p ON p.id = d."productId"
+      LEFT JOIN "Movement" m ON m.id = d."movementId"
+      WHERE d."movementId" = ${movementId}
+      and d.quantity <> d."quantityDelivered" 
+      ORDER BY p.designation ASC;
+    `;
   }
 
   async initPdf(
