@@ -257,9 +257,9 @@ export class ProductService {
             , 0) AS stock_input,
             COALESCE(
               SUM(CASE 
-                  WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' 
+                  WHEN m."isSales" = true AND (status_movement.code = '${STATUS.VALIDATED}' OR status_movement.code = '${STATUS.COMPLETED}')
                        ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
-                       ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
+                       ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d."quantityDelivered" 
                   ELSE 0 
               END)
             , 0) AS stock_output,
@@ -272,9 +272,9 @@ export class ProductService {
                         ELSE 0 
                     END) - 
                     SUM(CASE 
-                        WHEN m."isSales" = true AND status_movement.code = '${STATUS.COMPLETED}' 
+                        WHEN m."isSales" = true AND (status_movement.code = '${STATUS.VALIDATED}' OR status_movement.code = '${STATUS.COMPLETED}') 
                              ${startToDate ? `AND m."createdAt" >= '${startToDate}'` : ''}
-                             ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d.quantity 
+                             ${endToDate ? `AND m."createdAt" <= '${endToDate}'` : ''} THEN d."quantityDelivered"
                         ELSE 0 
                     END)
               ), 0) AS remaining_stock,
