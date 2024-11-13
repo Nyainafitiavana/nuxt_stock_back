@@ -17,7 +17,7 @@ import { RejectDto, UpdateDetailsDto } from './dto/update-movement.dto';
 import { NextFunction, Request, Response } from 'express';
 import { Movement, User } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guards';
-import { DetailsWithStock, IInvoicePayload } from './details.interface';
+import { DetailsWithStock, IInvoiceData } from './details.interface';
 import { AdminGuard } from '../auth/admin.guards';
 import { IHistoryValidation } from './historyValidation.interface';
 import { ExecuteResponse, Paginate } from '../utils/custom.interface';
@@ -131,7 +131,7 @@ export class MovementController {
     @Res() res: Response,
     @Next() next: NextFunction,
     @Param('uuid') movementId: string,
-    @Body() data: IInvoicePayload,
+    @Body() data: IInvoiceData,
     @Req() req: Request,
   ): Promise<void> {
     try {

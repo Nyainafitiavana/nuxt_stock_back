@@ -188,11 +188,9 @@ class Helper {
               <thead class="head-invoice">
                 <tr>
                   <th>${invoiceData.language === 'ENG' ? 'Designation' : 'Désignation'}</th>
-                  <th>${invoiceData.language === 'ENG' ? 'S.P' : 'P.V'} ${appSetting.currencyType}</th>
-                  <th>${invoiceData.language === 'ENG' ? 'Qt.O' : 'Qt.C'}</th>
-                  <th>${invoiceData.language === 'ENG' ? 'DLV' : 'LV'}</th>
-                  <th>${invoiceData.language === 'ENG' ? 'RM' : 'RTL'}</th>
-                  <th>Total ${appSetting.currencyType}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'S.P' : 'P.V'} (${appSetting.currencyType})</th>
+                  <th>${invoiceData.language === 'ENG' ? 'Qty' : 'Qté'}</th>
+                  <th>Total (${appSetting.currencyType})</th>
                 </tr>
               </thead>
               <tbody class="body-list">
@@ -203,9 +201,7 @@ class Helper {
                         <td>${item.product_name}</td>
                         <td class="price">${item.is_unit_price ? this.formatPrice(item.unit_price) : this.formatPrice(item.wholesale_price)}</td>
                         <td class="qt">${item.quantity}</td>
-                        <td class="qt">${item.quantity_delivered}</td>
-                        <td class="qt">${item.quantity - item.quantity_delivered}</td>
-                        <td class="price">${item.is_unit_price ? this.formatPrice(item.unit_price * item.quantity_delivered) : this.formatPrice(item.wholesale_price * item.quantity_delivered)}</td>
+                        <td class="price">${item.is_unit_price ? this.formatPrice(item.unit_price * item.quantity) : this.formatPrice(item.wholesale_price * item.quantity)}</td>
                       </tr>
                     `,
                   )
@@ -222,12 +218,8 @@ class Helper {
               <tr >
                 <th>${invoiceData.language === 'ENG' ? 'S.P' : 'P.V'}: </th>
                 <td>${invoiceData.language === 'ENG' ? 'Sales price' : 'Prix de vente'} </td>
-                <th>${invoiceData.language === 'ENG' ? 'Qt.O' : 'Qt.D'}: </th>
-                <td>${invoiceData.language === 'ENG' ? 'Quantity ordered' : 'Quantité commandée'} </td>
-                <th>${invoiceData.language === 'ENG' ? 'DLV' : 'LV'}: </th>
-                <td>${invoiceData.language === 'ENG' ? 'Delivered' : 'Livré'} </td>
-                <th>${invoiceData.language === 'ENG' ? 'RM' : 'RTL'}: </th>
-                <td>${invoiceData.language === 'ENG' ? 'Remaining' : 'Reste'}</td>
+                <th>${invoiceData.language === 'ENG' ? 'Qty' : 'Qté'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Quantity' : 'Quantité'} </td>
               </tr>
             </table>
         </body>
@@ -335,9 +327,7 @@ class Helper {
                 <tr>
                   <th>${invoiceData.language === 'ENG' ? 'Designation' : 'Désignation'}</th>
                   <th>${invoiceData.language === 'ENG' ? 'S.P' : 'P.V'} ${appSetting.currencyType}</th>
-                  <th>${invoiceData.language === 'ENG' ? 'Qt.O' : 'Qt.C'}</th>
-                  <th>${invoiceData.language === 'ENG' ? 'DLV' : 'LV'}</th>
-                  <th>${invoiceData.language === 'ENG' ? 'RM' : 'RTL'}</th>
+                  <th>${invoiceData.language === 'ENG' ? 'Qty' : 'Qté'}</th>
                   <th>Total ${appSetting.currencyType}</th>
                 </tr>
               </thead>
@@ -345,15 +335,13 @@ class Helper {
                 ${invoiceData.details
                   .map(
                     (item: DetailsWithStock) => `
-                      <tr>
-                        <td>${item.product_name}</td>
-                        <td class="price">${item.is_unit_price ? this.formatPrice(item.unit_price) : this.formatPrice(item.wholesale_price)}</td>
-                        <td class="qt">${item.quantity}</td>
-                        <td class="qt">${item.quantity_delivered}</td>
-                        <td class="qt">${item.quantity - item.quantity_delivered}</td>
-                        <td class="price">${item.is_unit_price ? this.formatPrice(item.unit_price * item.quantity_delivered) : this.formatPrice(item.wholesale_price * item.quantity_delivered)}</td>
-                      </tr>
-                    `,
+                        <tr>
+                          <td>${item.product_name}</td>
+                          <td class="price">${item.is_unit_price ? this.formatPrice(item.unit_price) : this.formatPrice(item.wholesale_price)}</td>
+                          <td class="qt">${item.quantity}</td>
+                          <td class="price">${item.is_unit_price ? this.formatPrice(item.unit_price * item.quantity) : this.formatPrice(item.wholesale_price * item.quantity)}</td>
+                        </tr>
+                      `,
                   )
                   .join('')}
               </tbody>
@@ -368,12 +356,8 @@ class Helper {
               <tr >
                 <th>${invoiceData.language === 'ENG' ? 'S.P' : 'P.V'}: </th>
                 <td>${invoiceData.language === 'ENG' ? 'Sales price' : 'Prix de vente'} </td>
-                <th>${invoiceData.language === 'ENG' ? 'Qt.O' : 'Qt.D'}: </th>
-                <td>${invoiceData.language === 'ENG' ? 'Quantity ordered' : 'Quantité commandée'} </td>
-                <th>${invoiceData.language === 'ENG' ? 'DLV' : 'LV'}: </th>
-                <td>${invoiceData.language === 'ENG' ? 'Delivered' : 'Livré'} </td>
-                <th>${invoiceData.language === 'ENG' ? 'RM' : 'RTL'}: </th>
-                <td>${invoiceData.language === 'ENG' ? 'Remaining' : 'Reste'}</td>
+                <th>${invoiceData.language === 'ENG' ? 'Qty' : 'Qté'}: </th>
+                <td>${invoiceData.language === 'ENG' ? 'Quantity' : 'Quantité'} </td>
               </tr>
             </table>
         </body>
