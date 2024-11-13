@@ -57,8 +57,8 @@ export class CashRegisterService {
         coalesce(
           sum(
             case when d."isUnitPrice" = true then 
-              (psp."unitPrice" * d."quantityDelivered") else 
-              (psp.wholesale * d."quantityDelivered") end
+              (psp."unitPrice" * d.quantity) else 
+              (psp.wholesale * d.quantity) end
           ) 
         , 0) as amount_sales
       from "Movement" m 
@@ -66,8 +66,7 @@ export class CashRegisterService {
       left join "Status" s on s.id = m."statusId" 
       left join "ProductSalesPrice" psp on psp.id = d."salesPriceId" 
       where "isSales" = true
-      and s.code = ${STATUS.VALIDATED}
-      or s.code = ${STATUS.COMPLETED}
+      and s.code = ${STATUS.COMPLETED}
       and m."createdAt"::DATE = CURRENT_DATE
     `;
 
@@ -100,22 +99,22 @@ export class CashRegisterService {
             SELECT 
                 wd.day as x_series, 
                 COALESCE(SUM(CASE 
-                    WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                         CASE 
                             WHEN d."isUnitPrice" = true THEN 
-                                GREATEST(((psp."unitPrice" - psp."purchasePrice") * d."quantityDelivered"), 0)
+                                GREATEST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0)
                             ELSE 
-                                GREATEST(((psp.wholesale - psp."purchasePrice") * d."quantityDelivered"), 0)
+                                GREATEST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0)
                         END
                     ELSE 0 
                 END), 0) AS total_profit_amount,
                 COALESCE(SUM(CASE 
-                    WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                         CASE 
                             WHEN d."isUnitPrice" = true THEN 
-                                ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d."quantityDelivered"), 0))
+                                ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0))
                             ELSE 
-                                ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d."quantityDelivered"), 0))
+                                ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0))
                         END
                     ELSE 0 
                 END), 0) AS total_loss_amount
@@ -165,22 +164,22 @@ export class CashRegisterService {
             SELECT 
                 EXTRACT(MONTH FROM m."createdAt") AS month_number,
                 COALESCE(SUM(CASE 
-                    WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                         CASE 
                             WHEN d."isUnitPrice" = true THEN 
-                                GREATEST(((psp."unitPrice" - psp."purchasePrice") * d."quantityDelivered"), 0)
+                                GREATEST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0)
                             ELSE 
-                                GREATEST(((psp.wholesale - psp."purchasePrice") * d."quantityDelivered"), 0)
+                                GREATEST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0)
                         END
                     ELSE 0 
                 END), 0) AS total_profit_amount,
                 COALESCE(SUM(CASE 
-                    WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                         CASE 
                             WHEN d."isUnitPrice" = true THEN 
-                                ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d."quantityDelivered"), 0))
+                                ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0))
                             ELSE 
-                                ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d."quantityDelivered"), 0))
+                                ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0))
                         END
                     ELSE 0 
                 END), 0) AS total_loss_amount
@@ -211,22 +210,22 @@ export class CashRegisterService {
             SELECT 
                 EXTRACT(YEAR FROM m."createdAt") AS year,
                 COALESCE(SUM(CASE 
-                    WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                         CASE 
                             WHEN d."isUnitPrice" = true THEN 
-                                GREATEST(((psp."unitPrice" - psp."purchasePrice") * d."quantityDelivered"), 0)
+                                GREATEST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0)
                             ELSE 
-                                GREATEST(((psp.wholesale - psp."purchasePrice") * d."quantityDelivered"), 0)
+                                GREATEST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0)
                         END
                     ELSE 0 
                 END), 0) AS total_profit_amount,
                 COALESCE(SUM(CASE 
-                    WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                         CASE 
                             WHEN d."isUnitPrice" = true THEN 
-                                ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d."quantityDelivered"), 0))
+                                ABS(LEAST(((psp."unitPrice" - psp."purchasePrice") * d.quantity), 0))
                             ELSE 
-                                ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d."quantityDelivered"), 0))
+                                ABS(LEAST(((psp.wholesale - psp."purchasePrice") * d.quantity), 0))
                         END
                     ELSE 0 
                 END), 0) AS total_loss_amount
@@ -264,10 +263,10 @@ export class CashRegisterService {
                   ELSE 0 
               END), 0) AS total_purchase_amount,
               COALESCE(SUM(CASE 
-                  WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                       CASE 
-                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d."quantityDelivered")
-                          ELSE (psp.wholesale * d."quantityDelivered")
+                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                          ELSE (psp.wholesale * d.quantity)
                       END
                   ELSE 0 
               END), 0) AS total_sales_amount
@@ -321,10 +320,10 @@ export class CashRegisterService {
                   ELSE 0 
               END), 0) AS total_purchase_amount,
               COALESCE(SUM(CASE 
-                  WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                       CASE 
-                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d."quantityDelivered")
-                          ELSE (psp.wholesale * d."quantityDelivered")
+                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                          ELSE (psp.wholesale * d.quantity)
                       END
                   ELSE 0 
               END), 0) AS total_sales_amount
@@ -359,10 +358,10 @@ export class CashRegisterService {
                   ELSE 0 
               END), 0) AS total_purchase_amount,
               COALESCE(SUM(CASE 
-                  WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                       CASE 
-                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d."quantityDelivered")
-                          ELSE (psp.wholesale * d."quantityDelivered")
+                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                          ELSE (psp.wholesale * d.quantity)
                       END
                   ELSE 0 
               END), 0) AS total_sales_amount
@@ -492,10 +491,10 @@ export class CashRegisterService {
                   ELSE 0 
               END), 0) AS total_purchase_amount,
               COALESCE(SUM(CASE 
-                  WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                       CASE 
-                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d."quantityDelivered")
-                          ELSE (psp.wholesale * d."quantityDelivered")
+                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                          ELSE (psp.wholesale * d.quantity)
                       END
                   ELSE 0 
               END), 0) AS total_sales_amount
@@ -563,10 +562,10 @@ export class CashRegisterService {
                   ELSE 0 
               END), 0) AS total_purchase_amount,
               COALESCE(SUM(CASE 
-                  WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                       CASE 
-                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d."quantityDelivered")
-                          ELSE (psp.wholesale * d."quantityDelivered")
+                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                          ELSE (psp.wholesale * d.quantity)
                       END
                   ELSE 0 
               END), 0) AS total_sales_amount
@@ -615,10 +614,10 @@ export class CashRegisterService {
                   ELSE 0 
               END), 0) AS total_purchase_amount,
               COALESCE(SUM(CASE 
-                  WHEN m."isSales" = true AND (s.code = ${STATUS.VALIDATED} OR s.code = ${STATUS.COMPLETED}) THEN 
+                  WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
                       CASE 
-                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d."quantityDelivered")
-                          ELSE (psp.wholesale * d."quantityDelivered")
+                          WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                          ELSE (psp.wholesale * d.quantity)
                       END
                   ELSE 0 
               END), 0) AS total_sales_amount
