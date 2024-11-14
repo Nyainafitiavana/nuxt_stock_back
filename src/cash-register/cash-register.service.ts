@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   ICashRegister,
+  ICashSummary,
   IExpenses,
   IProfitLoss,
-  IRealCash,
   IRevenue,
   ISalesPurchase,
 } from './cash-register.interface';
@@ -43,7 +43,7 @@ export class CashRegisterService {
     return result[0].amount_purchase;
   }
 
-  async getCashSummary(): Promise<IRealCash> {
+  async getCashSummary(): Promise<ICashSummary[]> {
     return this.prisma.$queryRaw`
       WITH 
         expenses_data AS (
