@@ -1,5 +1,4 @@
 export interface ICashRegister {
-  initial_cash: number;
   presentSalesAmount: number;
   presentPurchaseAmount: number;
   presentExpensesAmount: number;
@@ -27,7 +26,7 @@ export interface IRevenue {
   revenue: number;
 }
 
-export interface IRealCash {
+export interface ICashSummary {
   total_purchase_amount: number;
   total_sales_amount: number;
   total_expenses_amount: number;

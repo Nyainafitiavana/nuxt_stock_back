@@ -8,28 +8,19 @@ import {
   IRevenue,
   ISalesPurchase,
 } from './cash-register.interface';
-import { SettingsService } from '../settings/settings.service';
-import { Settings } from '@prisma/client';
 import { STATUS } from '../utils/constant';
 
 @Injectable()
 export class CashRegisterService {
-  constructor(
-    private prisma: PrismaService,
-    private settingsService: SettingsService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async cashGlobalSummary(): Promise<ICashRegister> {
-    //Get initialCash on settings
-    const settings: Settings = await this.settingsService.getSettings();
-    const initialCash: number = settings.initialCash;
+  async getPresentCashSummary(): Promise<ICashRegister> {
     //Get present amount
     const presentSalesAmount: number = await this.getPresentAmountSales();
     const presentPurchaseAmount: number = await this.getPresentAmountPurchase();
     const presentExpensesAmount: number = await this.getPresentAmountExpenses();
 
     return {
-      initial_cash: initialCash,
       presentSalesAmount: presentSalesAmount,
       presentPurchaseAmount: presentPurchaseAmount,
       presentExpensesAmount: presentExpensesAmount,
@@ -52,7 +43,7 @@ export class CashRegisterService {
     return result[0].amount_purchase;
   }
 
-  async getRealCash(): Promise<IRealCash> {
+  async getCashSummary(): Promise<IRealCash> {
     return this.prisma.$queryRaw`
       WITH 
         expenses_data AS (
@@ -92,8 +83,7 @@ export class CashRegisterService {
             COALESCE((ic.initial_cash + ad.total_sales_amount) - (ad.total_purchase_amount + ed.total_expenses_amount), 0) AS real_cash
         FROM aggregated_data ad
         LEFT JOIN expenses_data ed ON true
-        LEFT JOIN initial_cash_data ic ON true
-        limit 1;
+        LEFT JOIN initial_cash_data ic ON true;
     `;
   }
 

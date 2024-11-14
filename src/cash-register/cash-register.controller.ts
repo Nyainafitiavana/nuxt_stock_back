@@ -11,9 +11,9 @@ import { AdminGuard } from '../auth/admin.guards';
 import { NextFunction, Response } from 'express';
 import {
   ICashRegister,
+  ICashSummary,
   IExpenses,
   IProfitLoss,
-  IRealCash,
   IRevenue,
   ISalesPurchase,
 } from './cash-register.interface';
@@ -23,14 +23,14 @@ export class CashRegisterController {
   constructor(private readonly cashRegisterService: CashRegisterService) {}
 
   @UseGuards(AdminGuard)
-  @Get('/global')
-  async findAll(
+  @Get('/present-cash')
+  async getPresentCash(
     @Res() res: Response,
     @Next() next: NextFunction,
   ): Promise<void> {
     try {
       const result: ICashRegister =
-        await this.cashRegisterService.cashGlobalSummary();
+        await this.cashRegisterService.getPresentCashSummary();
 
       res.status(HttpStatus.OK).json(result);
     } catch (error) {
@@ -39,15 +39,16 @@ export class CashRegisterController {
   }
 
   @UseGuards(AdminGuard)
-  @Get('/real-cash')
+  @Get('/cash-summary')
   async getRealCash(
     @Res() res: Response,
     @Next() next: NextFunction,
   ): Promise<void> {
     try {
-      const result: IRealCash = await this.cashRegisterService.getRealCash();
+      const result: ICashSummary[] =
+        await this.cashRegisterService.getCashSummary();
 
-      res.status(HttpStatus.OK).json(result);
+      res.status(HttpStatus.OK).json(result[0]);
     } catch (error) {
       next(error);
     }
