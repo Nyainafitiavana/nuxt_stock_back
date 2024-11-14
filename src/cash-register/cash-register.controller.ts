@@ -13,6 +13,7 @@ import {
   ICashRegister,
   IExpenses,
   IProfitLoss,
+  IRealCash,
   IRevenue,
   ISalesPurchase,
 } from './cash-register.interface';
@@ -30,6 +31,21 @@ export class CashRegisterController {
     try {
       const result: ICashRegister =
         await this.cashRegisterService.cashGlobalSummary();
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('/real-cash')
+  async getRealCash(
+    @Res() res: Response,
+    @Next() next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result: IRealCash = await this.cashRegisterService.getRealCash();
 
       res.status(HttpStatus.OK).json(result);
     } catch (error) {

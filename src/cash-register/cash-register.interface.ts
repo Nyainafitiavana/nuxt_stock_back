@@ -26,3 +26,11 @@ export interface IRevenue {
   x_series: string;
   revenue: number;
 }
+
+export interface IRealCash {
+  total_purchase_amount: number;
+  total_sales_amount: number;
+  total_expenses_amount: number;
+  initial_cash: number;
+  real_cash: number;
+}

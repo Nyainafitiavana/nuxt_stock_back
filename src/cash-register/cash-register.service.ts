@@ -4,6 +4,7 @@ import {
   ICashRegister,
   IExpenses,
   IProfitLoss,
+  IRealCash,
   IRevenue,
   ISalesPurchase,
 } from './cash-register.interface';
@@ -49,6 +50,51 @@ export class CashRegisterService {
     `;
 
     return result[0].amount_purchase;
+  }
+
+  async getRealCash(): Promise<IRealCash> {
+    return this.prisma.$queryRaw`
+      WITH 
+        expenses_data AS (
+            SELECT 
+                COALESCE(SUM(e.amount), 0) AS total_expenses_amount
+            FROM "Expenses" e
+            LEFT JOIN "Status" s ON e."statusId" = s.id
+            WHERE s.code = ${STATUS.ACTIVE}
+        ), 
+        initial_cash_data AS (
+            SELECT COALESCE(s."initialCash", 0) AS initial_cash FROM "Settings" s LIMIT 1
+        ), 
+        aggregated_data AS (
+            SELECT
+                COALESCE(SUM(CASE 
+                    WHEN m."isSales" = false AND s.code = ${STATUS.VALIDATED} THEN (psp."purchasePrice" * d.quantity)
+                    ELSE 0 
+                END), 0) AS total_purchase_amount,
+                COALESCE(SUM(CASE 
+                    WHEN m."isSales" = true AND s.code = ${STATUS.COMPLETED} THEN 
+                        CASE 
+                            WHEN d."isUnitPrice" = true THEN (psp."unitPrice" * d.quantity)
+                            ELSE (psp.wholesale * d.quantity)
+                        END
+                    ELSE 0 
+                END), 0) AS total_sales_amount
+            FROM "Movement" m
+            LEFT JOIN "Details" d ON m.id = d."movementId"
+            LEFT JOIN "ProductSalesPrice" psp ON d."salesPriceId" = psp.id
+            LEFT JOIN "Status" s ON m."statusId" = s.id
+        )
+        SELECT
+            ad.total_purchase_amount,
+            ad.total_sales_amount,
+            ed.total_expenses_amount,
+            ic.initial_cash,
+            COALESCE((ic.initial_cash + ad.total_sales_amount) - (ad.total_purchase_amount + ed.total_expenses_amount), 0) AS real_cash
+        FROM aggregated_data ad
+        LEFT JOIN expenses_data ed ON true
+        LEFT JOIN initial_cash_data ic ON true
+        limit 1;
+    `;
   }
 
   async getPresentAmountSales(): Promise<number> {
