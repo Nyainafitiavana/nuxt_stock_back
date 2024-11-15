@@ -108,9 +108,7 @@ export class PdfService {
     return nextRef;
   }
 
-  async findAllInvoice(
-    limit: number = null,
-    page: number = null,
+  async findByMovementInvoice(
     movementId: string,
   ): Promise<Paginate<Invoice[]>> {
     const findMovement: Movement = await this.prisma.movement.findUnique({
@@ -128,6 +126,59 @@ export class PdfService {
       where: {
         movementId: findMovement.id,
       },
+      select: {
+        uuid: true,
+        reference: true,
+        clientName: true,
+        editor: {
+          select: {
+            uuid: true,
+            lastName: true,
+            firstName: true,
+          },
+        },
+        createdAt: true,
+        fileName: true,
+      },
+      orderBy: [{ reference: 'desc' }],
+    };
+
+    const [data, count] = await this.prisma.$transaction([
+      this.prisma.invoice.findMany(query),
+      this.prisma.invoice.count({ where: query.where }),
+    ]);
+
+    return { data: data, totalRows: count, page: 1 };
+  }
+
+  async findAllInvoice(
+    reference: string,
+    startDate: string,
+    endDate: string,
+    limit: number | null,
+    page: number | null,
+  ): Promise<Paginate<Invoice[]>> {
+    // Initialize the where clause
+    const whereClause: Prisma.InvoiceWhereInput = {
+      reference: { contains: reference, mode: 'insensitive' },
+    };
+
+    if (startDate !== '' && endDate !== '') {
+      const startToDate: Date = new Date(startDate);
+      //We need to set hours to 23h 59min 59sc 999ms to be sure so all movement created in the endDate is included
+      const endToDate: Date = new Date(
+        new Date(endDate).setHours(23, 59, 59, 999),
+      );
+      //gte: Greater than or equal to.
+      //lte: Less than or equal to.
+      whereClause.createdAt = {
+        gte: startToDate,
+        lte: endToDate,
+      };
+    }
+
+    const query: Prisma.InvoiceFindManyArgs = {
+      where: whereClause,
       select: {
         uuid: true,
         reference: true,
