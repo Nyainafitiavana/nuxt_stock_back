@@ -12,7 +12,7 @@ async function bootstrap() {
   app.enableCors(corsOptions);
 
   // Log incoming requests
-  app.use((req: any, next: any) => {
+  app.use((req: any, res: any, next: any) => {
     console.log(`Request URL: ${req.url}`);
     next();
   });
