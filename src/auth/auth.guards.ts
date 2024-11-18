@@ -20,10 +20,17 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
     if (!token) {
-      throw new UnauthorizedException(
-        'Accès non autorisé. Veuillez vous reconnecter.',
-      );
+      throw new UnauthorizedException('Token not provided.');
     }
+
+    const tokenRecord = await this.prisma.token.findUnique({
+      where: { token },
+    });
+
+    if (!tokenRecord || new Date() > tokenRecord.expiresAt) {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+
     try {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: jwtConstants.secret,
@@ -31,9 +38,7 @@ export class AuthGuard implements CanActivate {
 
       request['user'] = payload.user;
     } catch {
-      throw new UnauthorizedException(
-        'Accès non autorisé. Veuillez vous reconnecter.',
-      );
+      throw new UnauthorizedException('Token verification failed.');
     }
     return true;
   }

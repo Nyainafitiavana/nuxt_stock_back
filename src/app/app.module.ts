@@ -13,15 +13,13 @@ import { SettingsModule } from '../settings/settings.module';
 import { ExpenseTypeModule } from '../expense-type/expense-type.module';
 import { ExpensesModule } from '../expenses/expenses.module';
 import { CashRegisterModule } from '../cash-register/cash-register.module';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
 import { PdfModule } from '../pdf/pdf.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TaskServiceService } from './task-service.service';
 
 @Module({
   imports: [
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'), // Correct path to public folder
-    }),
+    ScheduleModule.forRoot(),
     PdfModule,
     AuthModule,
     UserModule,
@@ -37,6 +35,6 @@ import { PdfModule } from '../pdf/pdf.module';
     CashRegisterModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, TaskServiceService],
 })
 export class AppModule {}

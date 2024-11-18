@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { jwtConstants } from './constants';
 import { UserModule } from '../user/user.module';
 import Helper from '../utils/helper';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import Helper from '../utils/helper';
       signOptions: { expiresIn: '8h' },
     }),
     UserModule,
+    PrismaModule,
   ],
   providers: [AuthService, Helper],
   controllers: [AuthController],
