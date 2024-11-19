@@ -24,7 +24,7 @@ VALUES(7, '3641f095-70ae-4865-b16c-e6650852cfa1', 'Validated', 'VLD');
 ---insert default user----
 INSERT INTO public."User"
 (id, "uuid", "firstName", "lastName", "isAdmin", email, phone, "password", "statusId", "createdAt", "updatedAt")
-VALUES(1, 'fa3784d6-8f72-4ab1-a476-0d954bf7c3ea', 'FITAHIANTSOA', 'Ny Aina Fitiavana', true, 'admin@gmail.com', '+261342034890', '1234', 1, '2024-05-24 00:00:00.000', '2024-05-24 00:00:00.000');
+VALUES(1, 'fa3784d6-8f72-4ab1-a476-0d954bf7c3ea', 'FITAHIANTSOA', 'Ny Aina Fitiavana', true, 'admin@gmail.com', '+261342034890', '$2b$10$RF.j8oxFNSUzuMoSIKnLf.RoMxjJH2sF28KEpZEJUj7Vn/90i6mNC', 1, '2024-05-24 00:00:00.000', '2024-05-24 00:00:00.000');
 
 ALTER SEQUENCE public."User_id_seq"
 	RESTART 2;
