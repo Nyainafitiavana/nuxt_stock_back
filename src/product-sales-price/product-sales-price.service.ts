@@ -53,6 +53,21 @@ export class ProductSalesPriceService {
         },
       });
 
+    //Update the productSalesPriceId of all the details who his movement is in progress
+    await this.prisma.details.updateMany({
+      where: {
+        productId: findProduct.id,
+        movement: {
+          status: {
+            code: STATUS.IN_PROGRESS,
+          },
+        },
+      },
+      data: {
+        salesPriceId: createProductSalesPrice.id,
+      },
+    });
+
     delete createProductSalesPrice.id;
     delete createProductSalesPrice.productId;
     delete createProductSalesPrice.statusId;

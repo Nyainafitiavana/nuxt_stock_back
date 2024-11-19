@@ -39,3 +39,7 @@ export interface DetailsNotDelivered {
   quantity: number;
   quantity_delivered: number;
 }
+
+export interface selectDetailId {
+  id: number;
+}

@@ -260,10 +260,7 @@ export class MovementService {
                             ELSE 0 
                           END) - 
                          SUM(CASE 
-                            WHEN m1."isSales" = true AND (
-                              status_movement1.code = ${STATUS.VALIDATED} OR 
-                              status_movement1.code = ${STATUS.COMPLETED}
-                            ) THEN d1."quantityDelivered" 
+                            WHEN m1."isSales" = true AND status_movement1.code = ${STATUS.COMPLETED} THEN d1.quantity 
                             ELSE 0
                          END)
                       )
@@ -284,6 +281,7 @@ export class MovementService {
     ORDER BY p.designation ASC;
     `;
   }
+  //19
 
   async updateDetailMovement(
     movementId: string,
