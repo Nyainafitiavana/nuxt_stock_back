@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AuthInterface } from './auth.interface';
 import { UserService } from '../user/user.service';
 import { User } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -22,10 +23,13 @@ export class AuthService {
       });
     }
 
-    if (password !== user.password) {
-      throw new UnauthorizedException({
-        message: `Passwords do not match`,
-      });
+    const isPasswordValid: boolean = await bcrypt.compare(
+      password,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException(`Passwords do not match.`);
     }
 
     delete user.password;

@@ -26,9 +26,16 @@ export class UserService {
       where: { code: STATUS.ACTIVE },
     });
 
+    const hashedPassword: string = await this.helper.hashPassword(
+      createUserDto.password,
+    );
+
+    delete createUserDto.password;
+
     const createUser: User = await this.prisma.user.create({
       data: {
         ...createUserDto,
+        password: hashedPassword,
         statusId: findStatusByCode.id,
         uuid: await this.helper.generateUuid(),
       },

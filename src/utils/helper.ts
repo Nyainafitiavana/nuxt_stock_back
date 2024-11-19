@@ -1,8 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import { DetailsWithStock, IInvoiceData } from '../movement/details.interface';
 import { Settings, User } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 class Helper {
+  public async hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 10);
+  }
+
   public calculateOffset = async (
     limit: number,
     page: number,
