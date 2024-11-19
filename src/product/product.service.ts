@@ -61,8 +61,10 @@ export class ProductService {
   ): Promise<Paginate<Product[]>> {
     // Initialize the where clause
     const whereClause: Prisma.ProductWhereInput = {
-      designation: { contains: keyword, mode: 'insensitive' },
-      code: { contains: keyword, mode: 'insensitive' },
+      OR: [
+        { designation: { contains: keyword, mode: 'insensitive' } },
+        { code: { contains: keyword, mode: 'insensitive' } },
+      ],
       status: {
         code: status === STATUS.ACTIVE ? STATUS.ACTIVE : STATUS.DELETED,
       },
@@ -82,6 +84,7 @@ export class ProductService {
       where: whereClause,
       select: {
         designation: true,
+        code: true,
         uuid: true,
         description: true,
         status: {
