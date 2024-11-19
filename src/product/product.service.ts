@@ -62,6 +62,7 @@ export class ProductService {
     // Initialize the where clause
     const whereClause: Prisma.ProductWhereInput = {
       designation: { contains: keyword, mode: 'insensitive' },
+      code: { contains: keyword, mode: 'insensitive' },
       status: {
         code: status === STATUS.ACTIVE ? STATUS.ACTIVE : STATUS.DELETED,
       },

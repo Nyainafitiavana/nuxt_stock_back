@@ -5,6 +5,9 @@ export class CreateProductDto {
   public designation: string;
 
   @IsString()
+  public code?: string;
+
+  @IsString()
   public description?: string;
 
   @IsString()
