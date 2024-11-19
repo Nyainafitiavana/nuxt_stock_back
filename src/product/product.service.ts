@@ -247,6 +247,7 @@ export class ProductService {
           SELECT
             p."uuid" AS product_id,
             p.designation AS product_name,
+            case when p.code is not null and p.code != '' then p.code else '---' end AS code,
             COALESCE(c."uuid", '---') AS category_id,
             COALESCE(c.designation, '---') AS category_name,
             COALESCE(u."uuid", '---') AS unit_id,
@@ -310,7 +311,10 @@ export class ProductService {
 
     // Adding the keyword condition
     if (keyword && keyword.trim() !== '') {
-      baseQuery += ` AND LOWER(p.designation) LIKE LOWER('%${keyword}%')`;
+      baseQuery += ` AND (
+        LOWER(p.designation) LIKE LOWER('%${keyword}%') OR
+        LOWER(p.code) LIKE LOWER('%${keyword}%')
+      )`;
     }
 
     // Adding the category condition
@@ -328,7 +332,7 @@ export class ProductService {
 
     // Grouping and ordering
     const groupByClause = `
-    GROUP BY p."uuid", p.designation, c."uuid", c.designation, u."uuid", u.designation, psp."uuid", psp."unitPrice", psp."wholesale", psp."purchasePrice"
+    GROUP BY p."uuid", p.designation, p.code, c."uuid", c.designation, u."uuid", u.designation, psp."uuid", psp."unitPrice", psp."wholesale", psp."purchasePrice"
     ORDER BY p.designation ASC
   `;
 
@@ -343,7 +347,7 @@ export class ProductService {
     const countQuery =
       baseQuery +
       `
-    GROUP BY p."uuid", p.designation, c."uuid", c.designation, u."uuid", u.designation, psp."uuid", psp."unitPrice", psp."wholesale", psp."purchasePrice"
+    GROUP BY p."uuid", p.designation, p.code, c."uuid", c.designation, u."uuid", u.designation, psp."uuid", psp."unitPrice", psp."wholesale", psp."purchasePrice"
     ORDER BY p.designation ASC
   `;
 
