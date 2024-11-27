@@ -2,9 +2,10 @@ import { HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthInterface } from './auth.interface';
 import { UserService } from '../user/user.service';
-import { User } from '@prisma/client';
+import { Status, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { STATUS } from '../utils/constant';
 
 @Injectable()
 export class AuthService {
@@ -29,10 +30,22 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException(`Passwords do not match.`);
+      throw new UnauthorizedException({
+        message: `Passwords do not match.`,
+      });
     }
 
     delete user.password;
+
+    const findDeletedStatus: Status = await this.prisma.status.findUnique({
+      where: { code: STATUS.DELETED },
+    });
+
+    if (user.statusId === findDeletedStatus.id) {
+      throw new UnauthorizedException({
+        message: `The user is no longer active.`,
+      });
+    }
 
     const token: string = await this.jwtService.signAsync({ user });
     const expiresAt = new Date(Date.now() + 8 * 3600 * 1000); // 8 hours
