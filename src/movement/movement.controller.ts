@@ -70,6 +70,8 @@ export class MovementController {
         ? (req.query.status as string)
         : '';
 
+      const userConnect: User = req['user'];
+
       const movement: Paginate<Movement[]> = await this.movementService.findAll(
         limit,
         page,
@@ -77,6 +79,7 @@ export class MovementController {
         status,
         startDate,
         endDate,
+        !userConnect.isAdmin ? userConnect.id : null,
       );
 
       res.status(HttpStatus.OK).json(movement);

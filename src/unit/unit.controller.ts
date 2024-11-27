@@ -19,6 +19,7 @@ import { AdminGuard } from '../auth/admin.guards';
 import { NextFunction, Request, Response } from 'express';
 import { Unit } from '@prisma/client';
 import { ExecuteResponse, Paginate } from '../utils/custom.interface';
+import { AuthGuard } from '../auth/auth.guards';
 
 @Controller('/api/unit')
 export class UnitController {
@@ -40,7 +41,7 @@ export class UnitController {
     }
   }
 
-  @UseGuards(AdminGuard)
+  @UseGuards(AuthGuard)
   @Get()
   async findAll(
     @Res() res: Response,

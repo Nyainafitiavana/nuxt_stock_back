@@ -157,6 +157,7 @@ export class MovementService {
     status: string,
     startDate: string,
     endDate: string,
+    userId: number = null,
   ): Promise<Paginate<Movement[]>> {
     const findStatus: Status = await this.prisma.status.findUnique({
       where: {
@@ -188,6 +189,11 @@ export class MovementService {
         gte: startToDate,
         lte: endToDate,
       };
+    }
+
+    if (userId) {
+      //Get only the movement who the user connect is the editor
+      whereClause.editor = { id: userId };
     }
 
     const query: Prisma.MovementFindManyArgs = {
